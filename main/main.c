@@ -18,6 +18,18 @@ static const char *TAG = "hx711";
 #define SCALE_EMPTY_KETTLE_G 1825
 #define MARGIN_OF_ERROR_G 100
 
+TaskHandle_t weight_handle = NULL;
+TaskHandle_t determineState_handle = NULL;
+QueueHandle_t queue;
+
+enum state {
+    noKettle,
+    emptyKettle,
+    partiallyFullKettle,
+    fullKettle,
+};
+
+// core 1 for tasks, core 0 does wifi
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
@@ -80,25 +92,12 @@ void server_initiation()
     httpd_register_uri_handler(server_handle, &uri_post);
 }
 
+// wifi task
 void wifi(void *pvParameters) {
     wifi_connection();
     server_initiation();
     vTaskDelete(NULL);
 }
-
-// core 1 for tasks, core 0 does wifi
-
-
-TaskHandle_t weight_handle = NULL;
-TaskHandle_t determineState_handle = NULL;
-QueueHandle_t queue;
-
-enum state {
-    noKettle,
-    emptyKettle,
-    partiallyFullKettle,
-    fullKettle,
-};
 
 int32_t difference(int32_t a, int32_t b);
 
@@ -113,6 +112,8 @@ void determineState(void *pvParameters);
 void app_main()
 {
     queue = xQueueCreate(5, sizeof(int32_t));
+
+    xTaskCreate(wifi, "wifi", configMINIMAL_STACK_SIZE * 5, NULL, 4, NULL);
 
     xTaskCreate(
             weight, // function
@@ -197,10 +198,6 @@ void weight(void *pvParameters) {
 
 bool checkForWeight(int32_t weight, int32_t ref) {
     return (difference(weight, ref) < MARGIN_OF_ERROR_G);
-void app_main()
-{
-    xTaskCreate(wifi, "wifi", configMINIMAL_STACK_SIZE * 5, NULL, 4, NULL);
-    xTaskCreate(weight, "weight", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
 }
 
 void determineState(void *pvParameters) {
