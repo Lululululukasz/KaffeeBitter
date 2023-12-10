@@ -127,16 +127,19 @@ bool checkForWeight(int32_t weight, int32_t ref) {
 
 void determineState(void *pvParameters) {
 
+    int32_t coffeeAmount = 0;
+
     while (1) {
         int32_t weight;
         xQueueReceive(queue, &weight, portMAX_DELAY);
 
-        if (checkForWeight(weight, 0)) {
-            ESP_LOGI(TAG, "No Kettle: %" PRIi32, weight);
+        if (weight >= SCALE_EMPTY_KETTLE_G + MARGIN_OF_ERROR_G) {
+            coffeeAmount = weight - SCALE_EMPTY_KETTLE_G;
+            ESP_LOGI(TAG, "Amount of Coffee: %" PRIi32, coffeeAmount);
         } else if (checkForWeight(weight, SCALE_EMPTY_KETTLE_G)) {
             ESP_LOGI(TAG, "Empty Kettle: %" PRIi32, weight);
-        } else if (checkForWeight(weight, SCALE_EMPTY_KETTLE_G + 2000)) {
-            ESP_LOGI(TAG, "Full Kettle: %" PRIi32, weight);
+        } else {
+            ESP_LOGI(TAG, "No Kettle: %" PRIi32, weight);
         }
     }
 
