@@ -12,6 +12,53 @@
 
 static const char *TAG = "hx711-example";
 
+// core 1 for tasks, core 0 does wifi
+
+
+TaskHandle_t weight_handle = NULL;
+TaskHandle_t determineState_handle = NULL;
+QueueHandle_t queue;
+
+enum state {
+    noKettle,
+    emptyKettle,
+    partiallyFullKettle,
+    fullKettle,
+};
+
+int32_t difference(int32_t a, int32_t b);
+
+int32_t inGrams(int32_t raw);
+
+int32_t readRawScaleValue(hx711_t dev, int times);
+
+void weight(void *pvParameters);
+
+void determineState(void *pvParameters);
+
+void app_main()
+{
+    queue = xQueueCreate(5, sizeof(int32_t));
+
+    xTaskCreate(
+            weight, // function
+            "weight", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            5, // priority
+            &weight_handle // task handle: interaction from within other tasks
+    );
+
+    xTaskCreate(
+            determineState, // function
+            "determineState", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            5, // priority
+            &determineState_handle // task handle: interaction from within other tasks
+    );
+}
+
 int32_t difference(int32_t a, int32_t b) {
     if (a > b) {
         return a - b;
@@ -46,7 +93,6 @@ int32_t readRawScaleValue(hx711_t dev, int times) {
     return data;
 }
 
-
 void weight(void *pvParameters) {
     hx711_t dev = {
             .dout = CONFIG_EXAMPLE_DOUT_GPIO,
@@ -65,19 +111,34 @@ void weight(void *pvParameters) {
         data = readRawScaleValue(dev, CONFIG_EXAMPLE_AVG_TIMES);
 
         ESP_LOGI(TAG, "Raw data: %" PRIi32, data);
-        ESP_LOGI(TAG, "Data in g: %" PRIi32, inGrams(data));
 
-        if(difference(inGrams(data), SCALE_EMPTY_KETTLE_G) < MARGIN_OF_ERROR_G) {
-            ESP_LOGI(TAG, "Empty Kettle: %" PRIi32, inGrams(data));
-        } else if (difference(inGrams(data), SCALE_EMPTY_KETTLE_G + 2000) < MARGIN_OF_ERROR_G) {
-            ESP_LOGI(TAG, "Full Kettle: %" PRIi32, inGrams(data));
-        }
+        data = inGrams(data);
+        ESP_LOGI(TAG, "Data in g: %" PRIi32, data);
+
+        xQueueSend(queue, &data, portMAX_DELAY);
 
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
-void app_main()
-{
-    xTaskCreate(weight, "weight", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
+bool checkForWeight(int32_t weight, int32_t ref) {
+    return (difference(weight, ref) < MARGIN_OF_ERROR_G);
 }
+
+void determineState(void *pvParameters) {
+
+    while (1) {
+        int32_t weight;
+        xQueueReceive(queue, &weight, portMAX_DELAY);
+
+        if (checkForWeight(weight, 0)) {
+            ESP_LOGI(TAG, "No Kettle: %" PRIi32, weight);
+        } else if (checkForWeight(weight, SCALE_EMPTY_KETTLE_G)) {
+            ESP_LOGI(TAG, "Empty Kettle: %" PRIi32, weight);
+        } else if (checkForWeight(weight, SCALE_EMPTY_KETTLE_G + 2000)) {
+            ESP_LOGI(TAG, "Full Kettle: %" PRIi32, weight);
+        }
+    }
+
+}
+
