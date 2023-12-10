@@ -6,7 +6,7 @@
 
 static const char *TAG = "hx711-example";
 
-void test(void *pvParameters)
+void weight(void *pvParameters)
 {
     hx711_t dev = {
         .dout = CONFIG_EXAMPLE_DOUT_GPIO,
@@ -43,5 +43,5 @@ void test(void *pvParameters)
 
 void app_main()
 {
-    xTaskCreate(test, "test", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
+    xTaskCreate(weight, "weight", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
 }
