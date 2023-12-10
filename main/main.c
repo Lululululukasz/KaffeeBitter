@@ -12,6 +12,13 @@
 
 static const char *TAG = "hx711";
 
+#define N 32
+#define SCALE_ZERO_GRAMS -189250
+#define SCALE_500_GRAMS -213525
+#define SCALE_EMPTY_KETTLE_G 1825
+#define MARGIN_OF_ERROR_G 100
+
+
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     switch (event_id)
@@ -53,13 +60,6 @@ void wifi_connection()
     esp_wifi_connect();
 }
 
-#define N 32
-#define SCALE_ZERO_GRAMS -189250
-#define SCALE_500_GRAMS -213525
-#define SCALE_EMPTY_KETTLE_G 1825
-#define MARGIN_OF_ERROR_G 100
-
-static const char *TAG = "hx711-example";
 static esp_err_t post_handler(httpd_req_t *req)
 {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -78,6 +78,12 @@ void server_initiation()
             .handler = post_handler,
             .user_ctx = NULL};
     httpd_register_uri_handler(server_handle, &uri_post);
+}
+
+void wifi(void *pvParameters) {
+    wifi_connection();
+    server_initiation();
+    vTaskDelete(NULL);
 }
 
 int32_t difference(int32_t a, int32_t b) {
@@ -147,7 +153,6 @@ void weight(void *pvParameters) {
 
 void app_main()
 {
-    wifi_connection();
-    server_initiation();
+    xTaskCreate(wifi, "wifi", configMINIMAL_STACK_SIZE * 5, NULL, 4, NULL);
     xTaskCreate(weight, "weight", configMINIMAL_STACK_SIZE * 5, NULL, 5, NULL);
 }
