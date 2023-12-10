@@ -4,7 +4,7 @@
 #include <freertos/task.h>
 #include <hx711.h>
 
-static const char *TAG = "hx711-example";
+static const char *TAG = "hx711";
 
 void weight(void *pvParameters)
 {
