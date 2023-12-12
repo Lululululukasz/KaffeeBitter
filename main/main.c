@@ -8,28 +8,68 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "esp_http_server.h"
+#include <esp_netif_sntp.h>
+#include "time.h"
 #include "credentials.h"
 
 static const char *TAG = "hx711";
+
+const char* ntpServer = "pool.ntp.org";
 
 #define N 32
 #define SCALE_ZERO_GRAMS -189250
 #define SCALE_500_GRAMS -213525
 #define SCALE_EMPTY_KETTLE_G 1825
 #define MARGIN_OF_ERROR_G 100
+#define CUP_SIZE_ML 200
 
 TaskHandle_t weight_handle = NULL;
 TaskHandle_t determineState_handle = NULL;
 QueueHandle_t queue;
 
-enum state {
+enum State {
     noKettle,
     emptyKettle,
-    partiallyFullKettle,
-    fullKettle,
+    filledKettle
+};
+
+struct externalCoffeeData {
+    enum State state;
+    int32_t cupsOfCoffee;
+    int32_t tempInC;
+};
+
+struct InternalKoffeeData {
+    enum State state;
+    int32_t coffeeAmount;
+    // ??? ownTimestamp;
+    // ??? lastTimeFreshCoffee;
 };
 
 // core 1 for tasks, core 0 does wifi
+
+esp_err_t initialize_time(void)
+{
+    // SET SNTP
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
+    esp_netif_sntp_init(&config);
+
+    // set timezone
+    setenv("TZ", "GMT-1", 1);
+    tzset();
+
+    // GET SNTP response
+    esp_err_t response = esp_netif_sntp_sync_wait(pdMS_TO_TICKS(10000));
+
+    // Print time
+    char buffer[20];
+    time_t now = time(NULL);
+    strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
+    ESP_LOGI(TAG, "Current time is: %s", buffer);
+
+    return response;
+}
+
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
@@ -40,6 +80,7 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
             break;
         case WIFI_EVENT_STA_CONNECTED:
             printf("WiFi connected WIFI_EVENT_STA_CONNECTED ... \n");
+
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
             printf("WiFi lost connection WIFI_EVENT_STA_DISCONNECTED ... \n");
@@ -54,8 +95,8 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
 
 void wifi_connection()
 {
-    ESP_LOGI(TAG, "Wifi Network: (%s)", SSID);
-    ESP_LOGI(TAG, "Wifi Password: (%s)", PASS);
+    ESP_LOGI(TAG, "Wifi Network: (%s)", CONFIG_WIFI_SSID);
+    ESP_LOGI(TAG, "Wifi Password: (%s)", CONFIG_WIFI_PASSWORD);
 
     nvs_flash_init();
     esp_netif_init();
@@ -67,8 +108,10 @@ void wifi_connection()
     esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_event_handler, NULL);
     wifi_config_t wifi_configuration = {
             .sta = {
-                    .ssid = SSID,
-                    .password = PASS}};
+                    .ssid = CONFIG_WIFI_SSID,
+                    .password = CONFIG_WIFI_PASSWORD
+            }
+    };
     esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_configuration);
     esp_wifi_set_mode(WIFI_MODE_STA);
     esp_wifi_start();
@@ -99,6 +142,7 @@ void server_initiation()
 void wifi(void *pvParameters) {
     wifi_connection();
     server_initiation();
+    ESP_ERROR_CHECK(initialize_time());
     vTaskDelete(NULL);
 }
 
@@ -206,6 +250,7 @@ bool checkForWeight(int32_t weight, int32_t ref) {
 void determineState(void *pvParameters) {
 
     int32_t coffeeAmount = 0;
+    int32_t cupAmount = 0;
 
     while (1) {
         int32_t weight;
@@ -213,7 +258,9 @@ void determineState(void *pvParameters) {
 
         if (weight >= SCALE_EMPTY_KETTLE_G + MARGIN_OF_ERROR_G) {
             coffeeAmount = weight - SCALE_EMPTY_KETTLE_G;
+            cupAmount = coffeeAmount/CUP_SIZE_ML;
             ESP_LOGI(TAG, "Amount of Coffee: %" PRIi32, coffeeAmount);
+            ESP_LOGI(TAG, "Cups of Coffee: %" PRIi32, cupAmount);
         } else if (checkForWeight(weight, SCALE_EMPTY_KETTLE_G)) {
             ESP_LOGI(TAG, "Empty Kettle: %" PRIi32, weight);
         } else {

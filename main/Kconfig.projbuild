@@ -19,3 +19,13 @@ menu "Example configuration"
         default 5
         	
 endmenu
+
+menu "wifi"
+    config WIFI_SSID
+    string "WIFI_SSID"
+    default "Byte me"
+
+    config WIFI_PASSWORD
+    string "WIFI_PASSWORD"
+    default "if(password==1){open;}"
+endmenu
