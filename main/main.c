@@ -54,6 +54,9 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
 
 void wifi_connection()
 {
+    ESP_LOGI(TAG, "Wifi Network: (%s)", SSID);
+    ESP_LOGI(TAG, "Wifi Password: (%s)", PASS);
+
     nvs_flash_init();
     esp_netif_init();
     esp_event_loop_create_default();
