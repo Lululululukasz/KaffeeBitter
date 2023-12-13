@@ -381,8 +381,8 @@ CONFIG_EXAMPLE_AVG_TIMES=5
 #
 # wifi
 #
-CONFIG_WIFI_SSID="Byte me"
-CONFIG_WIFI_PASSWORD="if(password==1){open;}"
+CONFIG_WIFI_SSID="FH-Kiel-IoT-NAT"
+CONFIG_WIFI_PASSWORD="!FH-NAT-001!"
 # end of wifi
 
 #

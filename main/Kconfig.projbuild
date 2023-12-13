@@ -23,9 +23,9 @@ endmenu
 menu "wifi"
     config WIFI_SSID
     string "WIFI_SSID"
-    default "Byte me"
+    default "FH-Kiel-IoT-NAT"
 
     config WIFI_PASSWORD
     string "WIFI_PASSWORD"
-    default "if(password==1){open;}"
+    default "!FH-NAT-001!"
 endmenu
