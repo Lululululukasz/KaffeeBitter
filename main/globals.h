@@ -62,14 +62,21 @@ struct Measurement {
     time_t timestamp;
 };
 
+enum Temperature {
+    hot,
+    warm,
+    cold
+};
+
+const char* getTemperatureName(enum Temperature temperature);
 
 struct DetailedData {
     enum State state;
     struct Measurement measurement;
+    time_t freshCoffee;
     int32_t cupsOfCoffee;
-    int32_t tempInC;
+    enum Temperature temperature;
     int32_t coffeeAmountMl;
 };
-
 
 #endif //HX711_GLOBALS_H

@@ -38,3 +38,15 @@ const char *getStateChangeName(enum StateChange stateChange) {
     }
     return "Error";
 }
+
+const char* getTemperatureName(enum Temperature temperature) {
+    switch (temperature) {
+        case hot:
+            return "hot";
+        case warm:
+            return "warm";
+        case cold:
+            return "cold";
+    }
+    return "Error";
+}
