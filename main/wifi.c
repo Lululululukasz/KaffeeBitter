@@ -63,9 +63,10 @@ void api(void *pvParameters) {
 
         xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
         xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
+        free(apiMessage);
         apiMessageLength = snprintf(NULL, 0,"{%s, %d, %s}", getStateName(currentWebData.state), (int)currentWebData.cupsOfCoffee,
                               getTemperatureName(currentWebData.temperature)) + 1;
-
+        apiMessage = malloc(apiMessageLength);
         sprintf(apiMessage, "{%s, %d, %s}", getStateName(currentWebData.state), (int)currentWebData.cupsOfCoffee,
                 getTemperatureName(currentWebData.temperature));
 
