@@ -18,27 +18,6 @@
 #include "time.h"
 #include "globals.h"
 
-static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
-{
-    switch (event_id)
-    {
-        case WIFI_EVENT_STA_START:
-            printf("WiFi connecting WIFI_EVENT_STA_START ... \n");
-            break;
-        case WIFI_EVENT_STA_CONNECTED:
-            printf("WiFi connected WIFI_EVENT_STA_CONNECTED ... \n");
-
-            break;
-        case WIFI_EVENT_STA_DISCONNECTED:
-            printf("WiFi lost connection WIFI_EVENT_STA_DISCONNECTED ... \n");
-            break;
-        case IP_EVENT_STA_GOT_IP:
-            printf("WiFi got IP ... \n\n");
-            break;
-        default:
-            break;
-    }
-}
 void wifi_connection();
 
 static esp_err_t post_handler(httpd_req_t *req)

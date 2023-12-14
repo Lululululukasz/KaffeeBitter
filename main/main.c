@@ -10,7 +10,6 @@
 #include "esp_http_server.h"
 #include <esp_netif_sntp.h>
 #include "time.h"
-#include "wifi.h"
 #include "globals.h"
 #include "weight.h"
 #include "determineState.h"
@@ -24,8 +23,6 @@ void app_main()
     apiQueue = xQueueCreate(5, sizeof(struct ExternalCoffeeData));
     apiMessage_handle = xSemaphoreCreateMutex();
     apiMessageLength_handle = xSemaphoreCreateMutex();
-
-    xTaskCreate(wifi, "wifi", configMINIMAL_STACK_SIZE * 5, NULL, 4, NULL);
 
     xTaskCreate(
             weight, // function

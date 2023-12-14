@@ -38,7 +38,7 @@ void updateState(struct DetailedData* data, enum StateChange stateChange, struct
             data->measurement = measurement;
             data->freshCoffee = 0;
             data->cupsOfCoffee = 0;
-            data->temperature = 0;
+            data->temperature = cold;
             data->coffeeAmountMl = 0;
             break;
         case coffeeEmpty:
@@ -46,7 +46,7 @@ void updateState(struct DetailedData* data, enum StateChange stateChange, struct
             data->measurement = measurement;
             // fresh coffee timestamp stays same
             data->cupsOfCoffee = 0;
-            data->temperature = 0;
+            data->temperature = cold;
             data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
             break;
         case newEmptyKettle:
@@ -54,7 +54,7 @@ void updateState(struct DetailedData* data, enum StateChange stateChange, struct
             data->measurement = measurement;
             data->freshCoffee = 0;
             data->cupsOfCoffee = 0;
-            data->temperature = 0;
+            data->temperature = cold;
             data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
             break;
         case lessCoffee:
@@ -96,8 +96,8 @@ void determineState(void *pvParameters) {
         xQueueReceive(scaleQueue, &measurement, portMAX_DELAY);
 
         int32_t cups = calculateCupsFromWeight(measurement.weightG);
-        ESP_LOGI(TAG, "Current state: (%s)" PRIi32, getStateName(currentData.state));
-        ESP_LOGI(TAG, "Cups of Coffee: %" PRIi32, cups);
+        //ESP_LOGI(TAG, "Current state: (%s)" PRIi32, getStateName(currentData.state));
+        //ESP_LOGI(TAG, "Cups of Coffee: %" PRIi32, cups);
 
 
         switch (currentData.state) {
