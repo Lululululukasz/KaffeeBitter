@@ -31,9 +31,9 @@ void server_initiation()
     httpd_handle_t server_handle = NULL;
     httpd_start(&server_handle, &server_config);
     httpd_uri_t uri_post = {
-            .uri = "/",
-            .method = HTTP_POST,
-            .handler = post_handler,
+            .uri = "/hello",
+            .method = HTTP_GET,
+            .handler = hello_get_handler,
             .user_ctx = NULL};
     httpd_register_uri_handler(server_handle, &uri_post);
 }
@@ -41,6 +41,7 @@ void server_initiation()
 // wifi task
 void wifi(void *pvParameters) {
     wifi_connection();
+    nvs_flash_init();
     server_initiation();
     ESP_ERROR_CHECK(initialize_time());
     vTaskDelete(NULL);

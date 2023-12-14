@@ -54,4 +54,13 @@ void wifi(void *pvParameters);
 
 esp_err_t initialize_time(void);
 
+static esp_err_t hello_get_handler(httpd_req_t *req) {
+    int32_t hello = 420;
+    char str[snprintf(NULL, 0,"%d", (int)hello)+1];
+    sprintf(str, "%d", (int)hello);
+    const char* response = str;
+    httpd_resp_send(req, response, strlen(response));
+    return ESP_OK;
+}
+
 #endif //HX711_WIFI_H
