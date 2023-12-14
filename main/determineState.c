@@ -85,7 +85,7 @@ void determineState(void *pvParameters) {
 
     while (1) {
         struct Measurement measurement;
-        xQueueReceive(queue, &measurement, portMAX_DELAY);
+        xQueueReceive(scaleQueue, &measurement, portMAX_DELAY);
 
         int32_t cups = calculateCupsFromWeight(measurement.weightG);
         ESP_LOGI(TAG, "Current state: (%s)" PRIi32, getStateName(currentData.state));

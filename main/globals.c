@@ -5,7 +5,8 @@
 
 TaskHandle_t weight_handle = NULL;
 TaskHandle_t determineState_handle = NULL;
-QueueHandle_t queue = NULL;
+QueueHandle_t scaleQueue = NULL;
+QueueHandle_t apiQueue = NULL;
 
 const char* TAG = "hx711";
 

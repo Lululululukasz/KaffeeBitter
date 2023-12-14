@@ -59,7 +59,7 @@ void weight(void *pvParameters) {
         strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&measurement.timestamp));
         ESP_LOGI(TAG, "Current time is: %s", buffer);
 
-        xQueueSend(queue, &measurement, portMAX_DELAY);
+        xQueueSend(scaleQueue, &measurement, portMAX_DELAY);
 
         vTaskDelay(pdMS_TO_TICKS(500));
     }

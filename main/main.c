@@ -20,7 +20,7 @@
 
 void app_main()
 {
-    queue = xQueueCreate(5, sizeof(struct Measurement));
+    scaleQueue = xQueueCreate(5, sizeof(struct Measurement));
 
     xTaskCreate(wifi, "wifi", configMINIMAL_STACK_SIZE * 5, NULL, 4, NULL);
 
