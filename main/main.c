@@ -24,31 +24,44 @@ void app_main()
     apiMessage_handle = xSemaphoreCreateMutex();
     apiMessageLength_handle = xSemaphoreCreateMutex();
 
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
+            wifi, // function
+            "wifi", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            2, // priority
+            &weight_handle, // task handle: interaction from within other tasks
+            0
+    );
+
+    xTaskCreatePinnedToCore(
             weight, // function
             "weight", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
             2, // priority
-            &weight_handle // task handle: interaction from within other tasks
+            &weight_handle, // task handle: interaction from within other tasks
+            1
     );
 
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
             determineState, // function
             "determineState", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
             3, // priority
-            &determineState_handle // task handle: interaction from within other tasks
+            &determineState_handle, // task handle: interaction from within other tasks
+            1
     );
 
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
             api, // function
             "api", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
-            5, // priority
-            &api_handle // task handle: interaction from within other tasks
+            4, // priority
+            &api_handle, // task handle: interaction from within other tasks
+            0
     );
 
 

@@ -20,15 +20,7 @@
 
 void wifi_connection();
 
-static esp_err_t post_handler(httpd_req_t *req)
-{
-    xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
-    xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
-    httpd_resp_send(req, apiMessage, apiMessageLength);
-    xSemaphoreGive(apiMessage_handle);
-    xSemaphoreGive(apiMessageLength_handle);
-    return ESP_OK;
-}
+esp_err_t post_handler(httpd_req_t *req);
 
 void server_initiation();
 

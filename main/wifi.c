@@ -73,7 +73,6 @@ void server_initiation()
 // wifi task
 void wifi(void *pvParameters) {
     wifi_connection();
-    nvs_flash_init();
     server_initiation();
     ESP_ERROR_CHECK(initialize_time());
 
@@ -123,4 +122,14 @@ esp_err_t initialize_time(void)
     ESP_LOGI(TAG, "Current time is: %s", buffer);
 
     return response;
+}
+
+esp_err_t post_handler(httpd_req_t *req) {
+//xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
+//xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
+httpd_resp_send(req, apiMessage, apiMessageLength);
+ESP_LOGI(TAG, "api message: (%s)", apiMessage);
+//xSemaphoreGive(apiMessage_handle);
+//xSemaphoreGive(apiMessageLength_handle);
+return ESP_OK;
 }
