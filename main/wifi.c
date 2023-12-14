@@ -1,12 +1,12 @@
 #include "wifi.h"
 
 httpd_handle_t start_webserver(void);
+
 void stop_webserver(httpd_handle_t server);
 
-static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
-{
-    switch (event_id)
-    {
+static void
+wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+    switch (event_id) {
         case WIFI_EVENT_STA_START:
             printf("WiFi connecting WIFI_EVENT_STA_START ... \n");
             break;
@@ -25,8 +25,7 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
     }
 }
 
-void wifi_connection()
-{
+void wifi_connection() {
     ESP_LOGI(TAG, "Wifi Network: (%s)", CONFIG_WIFI_SSID);
     ESP_LOGI(TAG, "Wifi Password: (%s)", CONFIG_WIFI_PASSWORD);
 
@@ -50,8 +49,7 @@ void wifi_connection()
     esp_wifi_connect();
 }
 
-void server_initiation()
-{
+void server_initiation() {
     httpd_config_t server_config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server_handle = NULL;
     httpd_start(&server_handle, &server_config);
@@ -88,10 +86,11 @@ void api(void *pvParameters) {
         xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
         xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
         free(apiMessage);
-        apiMessageLength = snprintf(NULL, 0,"{%s, %d, %s}", getStateName(currentWebData.state), (int)currentWebData.cupsOfCoffee,
-                              getTemperatureName(currentWebData.temperature)) + 1;
+        apiMessageLength =
+                snprintf(NULL, 0, "{%s, %d, %s}", getStateName(currentWebData.state), (int) currentWebData.cupsOfCoffee,
+                         getTemperatureName(currentWebData.temperature)) + 1;
         apiMessage = malloc(apiMessageLength);
-        sprintf(apiMessage, "{%s, %d, %s}", getStateName(currentWebData.state), (int)currentWebData.cupsOfCoffee,
+        sprintf(apiMessage, "{%s, %d, %s}", getStateName(currentWebData.state), (int) currentWebData.cupsOfCoffee,
                 getTemperatureName(currentWebData.temperature));
 
         ESP_LOGI(TAG, "api message: (%s)", apiMessage);
@@ -102,8 +101,7 @@ void api(void *pvParameters) {
 }
 
 
-esp_err_t initialize_time(void)
-{
+esp_err_t initialize_time(void) {
     // SET SNTP
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     esp_netif_sntp_init(&config);
@@ -125,11 +123,11 @@ esp_err_t initialize_time(void)
 }
 
 esp_err_t post_handler(httpd_req_t *req) {
-//xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
-//xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
-httpd_resp_send(req, apiMessage, apiMessageLength);
-ESP_LOGI(TAG, "api message: (%s)", apiMessage);
-//xSemaphoreGive(apiMessage_handle);
-//xSemaphoreGive(apiMessageLength_handle);
-return ESP_OK;
+    xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
+    xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
+    httpd_resp_send(req, apiMessage, apiMessageLength);
+    ESP_LOGI(TAG, "api message: (%s)", apiMessage);
+    xSemaphoreGive(apiMessage_handle);
+    xSemaphoreGive(apiMessageLength_handle);
+    return ESP_OK;
 }
