@@ -27,8 +27,13 @@
 
 extern TaskHandle_t weight_handle;
 extern TaskHandle_t determineState_handle;
+extern TaskHandle_t api_handle;
 extern QueueHandle_t scaleQueue;
 extern QueueHandle_t apiQueue;
+extern SemaphoreHandle_t apiMessage_handle;
+extern SemaphoreHandle_t apiMessageLength_handle;
+extern int apiMessageLength;
+extern char* apiMessage;
 
 extern const char *TAG;
 
@@ -52,6 +57,12 @@ enum StateChange {
 
 const char* getStateChangeName(enum StateChange stateChange);
 
+enum Temperature {
+    hot,
+    warm,
+    cold
+};
+
 struct ExternalCoffeeData {
     enum State state;
     int32_t cupsOfCoffee;
@@ -61,12 +72,6 @@ struct ExternalCoffeeData {
 struct Measurement {
     int32_t weightG;
     time_t timestamp;
-};
-
-enum Temperature {
-    hot,
-    warm,
-    cold
 };
 
 const char* getTemperatureName(enum Temperature temperature);

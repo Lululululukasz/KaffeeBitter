@@ -74,6 +74,14 @@ void updateState(struct DetailedData* data, enum StateChange stateChange, struct
             data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
             break;
     }
+
+    struct ExternalCoffeeData webData = {
+            .state = data->state,
+            .cupsOfCoffee = data->cupsOfCoffee,
+            .temperature = data->temperature,
+    };
+
+    xQueueSend(apiQueue, &webData, portMAX_DELAY);
     ESP_LOGI(TAG, "State change: (%s)" PRIi32, getStateChangeName(stateChange));
 }
 

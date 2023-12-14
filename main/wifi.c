@@ -31,11 +31,18 @@ void server_initiation()
     httpd_handle_t server_handle = NULL;
     httpd_start(&server_handle, &server_config);
     httpd_uri_t uri_post = {
-            .uri = "/hello",
-            .method = HTTP_GET,
-            .handler = hello_get_handler,
+            .uri = "/",
+            .method = HTTP_POST,
+            .handler = post_handler,
             .user_ctx = NULL};
     httpd_register_uri_handler(server_handle, &uri_post);
+
+    httpd_uri_t uri_post2 = {
+            .uri = "/data",
+            .method = HTTP_GET,
+            .handler = post_handler,
+            .user_ctx = NULL};
+    httpd_register_uri_handler(server_handle, &uri_post2);
 }
 
 // wifi task
@@ -44,7 +51,29 @@ void wifi(void *pvParameters) {
     nvs_flash_init();
     server_initiation();
     ESP_ERROR_CHECK(initialize_time());
+
     vTaskDelete(NULL);
+}
+
+void api(void *pvParameters) {
+    struct ExternalCoffeeData currentWebData;
+
+    while (1) {
+        xQueueReceive(apiQueue, &currentWebData, portMAX_DELAY);
+
+        xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
+        xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
+        apiMessageLength = snprintf(NULL, 0,"{%s, %d, %s}", getStateName(currentWebData.state), (int)currentWebData.cupsOfCoffee,
+                              getTemperatureName(currentWebData.temperature)) + 1;
+
+        sprintf(apiMessage, "{%s, %d, %s}", getStateName(currentWebData.state), (int)currentWebData.cupsOfCoffee,
+                getTemperatureName(currentWebData.temperature));
+
+        ESP_LOGI(TAG, "api message: (%s)", apiMessage);
+        xSemaphoreGive(apiMessage_handle);
+        xSemaphoreGive(apiMessageLength_handle);
+
+    }
 }
 
 

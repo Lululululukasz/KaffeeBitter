@@ -21,6 +21,9 @@
 void app_main()
 {
     scaleQueue = xQueueCreate(5, sizeof(struct Measurement));
+    apiQueue = xQueueCreate(5, sizeof(struct ExternalCoffeeData));
+    apiMessage_handle = xSemaphoreCreateMutex();
+    apiMessageLength_handle = xSemaphoreCreateMutex();
 
     xTaskCreate(wifi, "wifi", configMINIMAL_STACK_SIZE * 5, NULL, 4, NULL);
 
@@ -29,7 +32,7 @@ void app_main()
             "weight", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
-            5, // priority
+            2, // priority
             &weight_handle // task handle: interaction from within other tasks
     );
 
@@ -38,7 +41,18 @@ void app_main()
             "determineState", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
-            5, // priority
+            3, // priority
             &determineState_handle // task handle: interaction from within other tasks
     );
+
+    xTaskCreate(
+            api, // function
+            "api", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            5, // priority
+            &api_handle // task handle: interaction from within other tasks
+    );
+
+
 }
