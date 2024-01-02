@@ -12,23 +12,6 @@ int32_t difference(int32_t a, int32_t b) {
     }
 }
 
-void setDetailesState(struct DetailedData* res, enum State state, struct Measurement measurement) {
-    switch (state) {
-        case noKettle:
-            res->state = noKettle;
-            //res->timestamp = measurement.timestamp;
-            res->tempInC = 0;
-            res->coffeeAmountMl = measurement.weightG;
-            res->cupsOfCoffee = 0;
-            return;
-        case emptyKettle:
-            break;
-        case filledKettle:
-            break;
-    }
-
-}
-
 int32_t calculateCupsFromWeight(int32_t weight) {
     return (weight - SCALE_EMPTY_KETTLE_G) / CUP_SIZE_ML;
 }
@@ -37,20 +20,68 @@ bool checkForWeight(int32_t weight, int32_t ref) {
     return (difference(weight, ref) < MARGIN_OF_ERROR_G);
 }
 
-void updateState(struct DetailedData* data, enum StateChange stateChange) {
+enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current) {
+    double dif = difftime(freshCoffee, current);
+    if(dif >= 24) {
+        return cold;
+    } else if (dif >= 6) {
+        return warm;
+    } else {
+        return hot;
+    }
+}
+
+void updateState(struct DetailedData* data, enum StateChange stateChange, struct Measurement measurement) {
     switch (stateChange) {
         case noMoreKettle:
             data->state = noKettle;
+            data->measurement = measurement;
+            data->freshCoffee = 0;
+            data->cupsOfCoffee = 0;
+            data->temperature = cold;
+            data->coffeeAmountMl = 0;
             break;
         case coffeeEmpty:
+            data->state = emptyKettle;
+            data->measurement = measurement;
+            // fresh coffee timestamp stays same
+            data->cupsOfCoffee = 0;
+            data->temperature = cold;
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            break;
         case newEmptyKettle:
             data->state = emptyKettle;
+            data->measurement = measurement;
+            data->freshCoffee = 0;
+            data->cupsOfCoffee = 0;
+            data->temperature = cold;
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
             break;
         case lessCoffee:
+            data->state = filledKettle;
+            data->measurement = measurement;
+            // fresh coffee timestamp stays same
+            data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
+            data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            break;
         case freshCoffee:
             data->state = filledKettle;
+            data->measurement = measurement;
+            data->freshCoffee = measurement.timestamp;
+            data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
+            data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
             break;
     }
+
+    struct ExternalCoffeeData webData = {
+            .state = data->state,
+            .cupsOfCoffee = data->cupsOfCoffee,
+            .temperature = data->temperature,
+    };
+
+    xQueueSend(apiQueue, &webData, portMAX_DELAY);
     ESP_LOGI(TAG, "State change: (%s)" PRIi32, getStateChangeName(stateChange));
 }
 
@@ -62,19 +93,19 @@ void determineState(void *pvParameters) {
 
     while (1) {
         struct Measurement measurement;
-        xQueueReceive(queue, &measurement, portMAX_DELAY);
+        xQueueReceive(scaleQueue, &measurement, portMAX_DELAY);
 
         int32_t cups = calculateCupsFromWeight(measurement.weightG);
-        ESP_LOGI(TAG, "Current state: (%s)" PRIi32, getStateName(currentData.state));
-        ESP_LOGI(TAG, "Cups of Coffee: %" PRIi32, cups);
+        //ESP_LOGI(TAG, "Current state: (%s)" PRIi32, getStateName(currentData.state));
+        //ESP_LOGI(TAG, "Cups of Coffee: %" PRIi32, cups);
 
 
         switch (currentData.state) {
             case noKettle: {
                 if (cups > 0) {
-                    updateState(&currentData, freshCoffee); // ! Fresh Coffee
+                    updateState(&currentData, freshCoffee, measurement); // ! Fresh Coffee
                 } else if (checkForWeight(measurement.weightG, SCALE_EMPTY_KETTLE_G)) {
-                    updateState(&currentData, newEmptyKettle);
+                    updateState(&currentData, newEmptyKettle, measurement);
                 } // else no Kettle -> nothing changed
                 break;
             }
@@ -82,55 +113,20 @@ void determineState(void *pvParameters) {
                 if (cups > 0) {
                     break; // filled Kettle -> makes no sense
                 } else if (!checkForWeight(measurement.weightG, SCALE_EMPTY_KETTLE_G)) {
-                    updateState(&currentData, noMoreKettle);
+                    updateState(&currentData, noMoreKettle, measurement);
                 } // else empty Kettle -> nothing changed
                 break;
             case filledKettle:
                 if (cups >= currentData.cupsOfCoffee ) {
                     break; // no change or someone is pressing on the scale -> ignore
                 } else if (cups > 0) {
-                    updateState(&currentData, lessCoffee);
+                    updateState(&currentData, lessCoffee, measurement);
                 } else if (checkForWeight(measurement.weightG, SCALE_EMPTY_KETTLE_G)) {
-                    updateState(&currentData, coffeeEmpty);
+                    updateState(&currentData, coffeeEmpty, measurement);
                 } else {
-                    updateState(&currentData, noMoreKettle);
+                    updateState(&currentData, noMoreKettle, measurement);
                 }
                 break;
         }
-
-        /*
-
-        if (measurement.weightG < SCALE_EMPTY_KETTLE_G) {
-            if (lastStateChange.state == noKettle) {
-                continue;
-            } else {
-                setDetailesState(&lastStateChange, noKettle, measurement);
-
-                char buffer[20];
-                strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&lastStateChange.timestamp));
-                ESP_LOGI(TAG, "Empty Kettle: %s", buffer);
-                // send message here somehow
-            }
-        } else if (calculateCupsFromWeight(measurement.weightG) == 0) {
-            if (lastStateChange.state == noKettle) {
-                continue;
-            } else {
-                setDetailesState(&lastStateChange, noKettle, measurement);
-        }
-
-        if (measurement.weightG >= SCALE_EMPTY_KETTLE_G + MARGIN_OF_ERROR_G) {
-            coffeeAmount = measurement.weightG - SCALE_EMPTY_KETTLE_G;
-            cupAmount = coffeeAmount/CUP_SIZE_ML;
-            ESP_LOGI(TAG, "Amount of Coffee: %" PRIi32, coffeeAmount);
-            ESP_LOGI(TAG, "Cups of Coffee: %" PRIi32, cupAmount);
-        } else if (checkForWeight(measurement.weightG, SCALE_EMPTY_KETTLE_G)) {
-            ESP_LOGI(TAG, "Empty Kettle: %" PRIi32, measurement.weightG);
-        } else {
-            ESP_LOGI(TAG, "No Kettle: %" PRIi32, measurement.weightG);
-        }
-         */
     }
-
 }
-
-

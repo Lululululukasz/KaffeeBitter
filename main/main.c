@@ -10,7 +10,6 @@
 #include "esp_http_server.h"
 #include <esp_netif_sntp.h>
 #include "time.h"
-#include "wifi.h"
 #include "globals.h"
 #include "weight.h"
 #include "determineState.h"
@@ -20,25 +19,49 @@
 
 void app_main()
 {
-    queue = xQueueCreate(5, sizeof(struct Measurement));
+    scaleQueue = xQueueCreate(5, sizeof(struct Measurement));
+    apiQueue = xQueueCreate(5, sizeof(struct ExternalCoffeeData));
+    apiMessage_handle = xSemaphoreCreateMutex();
 
-    xTaskCreate(wifi, "wifi", configMINIMAL_STACK_SIZE * 5, NULL, 4, NULL);
+    xTaskCreatePinnedToCore(
+            wifi, // function
+            "wifi", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            2, // priority
+            &weight_handle, // task handle: interaction from within other tasks
+            0
+    );
 
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
             weight, // function
             "weight", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
-            5, // priority
-            &weight_handle // task handle: interaction from within other tasks
+            2, // priority
+            &weight_handle, // task handle: interaction from within other tasks
+            1
     );
 
-    xTaskCreate(
+    xTaskCreatePinnedToCore(
             determineState, // function
             "determineState", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
-            5, // priority
-            &determineState_handle // task handle: interaction from within other tasks
+            3, // priority
+            &determineState_handle, // task handle: interaction from within other tasks
+            1
     );
+
+    xTaskCreatePinnedToCore(
+            api, // function
+            "api", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            4, // priority
+            &api_handle, // task handle: interaction from within other tasks
+            0
+    );
+
+
 }

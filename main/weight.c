@@ -47,20 +47,20 @@ void weight(void *pvParameters) {
 
         data = readRawScaleValue(dev, CONFIG_EXAMPLE_AVG_TIMES);
 
-        ESP_LOGI(TAG, "Raw data: %" PRIi32, data);
+        //ESP_LOGI(TAG, "Raw data: %" PRIi32, data);
 
         struct Measurement measurement;
 
         measurement.weightG = inGrams(data);
-        ESP_LOGI(TAG, "Data in g: %" PRIi32, measurement.weightG);
+        //ESP_LOGI(TAG, "Data in g: %" PRIi32, measurement.weightG);
 
         measurement.timestamp = time(NULL);
         char buffer[20];
         strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&measurement.timestamp));
-        ESP_LOGI(TAG, "Current time is: %s", buffer);
+        //ESP_LOGI(TAG, "Current time is: %s", buffer);
 
-        xQueueSend(queue, &measurement, portMAX_DELAY);
+        xQueueSend(scaleQueue, &measurement, portMAX_DELAY);
 
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

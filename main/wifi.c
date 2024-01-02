@@ -1,7 +1,31 @@
 #include "wifi.h"
 
-void wifi_connection()
-{
+httpd_handle_t start_webserver(void);
+
+void stop_webserver(httpd_handle_t server);
+
+static void
+wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+    switch (event_id) {
+        case WIFI_EVENT_STA_START:
+            printf("WiFi connecting WIFI_EVENT_STA_START ... \n");
+            break;
+        case WIFI_EVENT_STA_CONNECTED:
+            printf("WiFi connected WIFI_EVENT_STA_CONNECTED ... \n");
+
+            break;
+        case WIFI_EVENT_STA_DISCONNECTED:
+            printf("WiFi lost connection WIFI_EVENT_STA_DISCONNECTED ... \n");
+            break;
+        case IP_EVENT_STA_GOT_IP:
+            printf("WiFi got IP ... \n\n");
+            break;
+        default:
+            break;
+    }
+}
+
+void wifi_connection() {
     ESP_LOGI(TAG, "Wifi Network: (%s)", CONFIG_WIFI_SSID);
     ESP_LOGI(TAG, "Wifi Password: (%s)", CONFIG_WIFI_PASSWORD);
 
@@ -25,8 +49,7 @@ void wifi_connection()
     esp_wifi_connect();
 }
 
-void server_initiation()
-{
+void server_initiation() {
     httpd_config_t server_config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server_handle = NULL;
     httpd_start(&server_handle, &server_config);
@@ -36,6 +59,13 @@ void server_initiation()
             .handler = post_handler,
             .user_ctx = NULL};
     httpd_register_uri_handler(server_handle, &uri_post);
+
+    httpd_uri_t uri_post2 = {
+            .uri = "/data",
+            .method = HTTP_GET,
+            .handler = post_handler,
+            .user_ctx = NULL};
+    httpd_register_uri_handler(server_handle, &uri_post2);
 }
 
 // wifi task
@@ -43,12 +73,33 @@ void wifi(void *pvParameters) {
     wifi_connection();
     server_initiation();
     ESP_ERROR_CHECK(initialize_time());
+
     vTaskDelete(NULL);
 }
 
+void api(void *pvParameters) {
+    struct ExternalCoffeeData currentWebData;
 
-esp_err_t initialize_time(void)
-{
+    while (1) {
+        xQueueReceive(apiQueue, &currentWebData, portMAX_DELAY);
+
+        xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
+        free(apiMessage);
+        apiMessageLength =
+                snprintf(NULL, 0, "{%s, %d, %s}", getStateName(currentWebData.state), (int) currentWebData.cupsOfCoffee,
+                         getTemperatureName(currentWebData.temperature)) + 1;
+        apiMessage = malloc(apiMessageLength);
+        sprintf(apiMessage, "{%s, %d, %s}", getStateName(currentWebData.state), (int) currentWebData.cupsOfCoffee,
+                getTemperatureName(currentWebData.temperature));
+
+        ESP_LOGI(TAG, "api message: (%s)", apiMessage);
+        xSemaphoreGive(apiMessage_handle);
+
+    }
+}
+
+
+esp_err_t initialize_time(void) {
     // SET SNTP
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     esp_netif_sntp_init(&config);
@@ -67,4 +118,12 @@ esp_err_t initialize_time(void)
     ESP_LOGI(TAG, "Current time is: %s", buffer);
 
     return response;
+}
+
+esp_err_t post_handler(httpd_req_t *req) {
+    xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
+    httpd_resp_send(req, apiMessage, apiMessageLength);
+    ESP_LOGI(TAG, "api message: (%s)", apiMessage);
+    xSemaphoreGive(apiMessage_handle);
+    return ESP_OK;
 }
