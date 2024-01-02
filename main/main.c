@@ -22,7 +22,6 @@ void app_main()
     scaleQueue = xQueueCreate(5, sizeof(struct Measurement));
     apiQueue = xQueueCreate(5, sizeof(struct ExternalCoffeeData));
     apiMessage_handle = xSemaphoreCreateMutex();
-    apiMessageLength_handle = xSemaphoreCreateMutex();
 
     xTaskCreatePinnedToCore(
             wifi, // function

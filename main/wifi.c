@@ -84,7 +84,6 @@ void api(void *pvParameters) {
         xQueueReceive(apiQueue, &currentWebData, portMAX_DELAY);
 
         xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
-        xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
         free(apiMessage);
         apiMessageLength =
                 snprintf(NULL, 0, "{%s, %d, %s}", getStateName(currentWebData.state), (int) currentWebData.cupsOfCoffee,
@@ -95,7 +94,6 @@ void api(void *pvParameters) {
 
         ESP_LOGI(TAG, "api message: (%s)", apiMessage);
         xSemaphoreGive(apiMessage_handle);
-        xSemaphoreGive(apiMessageLength_handle);
 
     }
 }
@@ -124,10 +122,8 @@ esp_err_t initialize_time(void) {
 
 esp_err_t post_handler(httpd_req_t *req) {
     xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
-    xSemaphoreTake(apiMessageLength_handle, portMAX_DELAY);
     httpd_resp_send(req, apiMessage, apiMessageLength);
     ESP_LOGI(TAG, "api message: (%s)", apiMessage);
     xSemaphoreGive(apiMessage_handle);
-    xSemaphoreGive(apiMessageLength_handle);
     return ESP_OK;
 }

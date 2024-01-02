@@ -31,7 +31,6 @@ extern TaskHandle_t api_handle;
 extern QueueHandle_t scaleQueue;
 extern QueueHandle_t apiQueue;
 extern SemaphoreHandle_t apiMessage_handle;
-extern SemaphoreHandle_t apiMessageLength_handle;
 extern int apiMessageLength;
 extern char* apiMessage;
 
