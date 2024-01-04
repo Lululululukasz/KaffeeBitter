@@ -1,19 +1,10 @@
 #include <inttypes.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <hx711.h>
-#include <stdio.h>
-#include "esp_wifi.h"
-#include "nvs_flash.h"
-#include "esp_netif.h"
-#include "esp_http_server.h"
-#include <esp_netif_sntp.h>
-#include "time.h"
 #include "globals.h"
 #include "weight.h"
 #include "determineState.h"
-
+#include "api.h"
 
 // core 1 for tasks, core 0 does wifi
 
