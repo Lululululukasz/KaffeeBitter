@@ -13,6 +13,7 @@
 #include "globals.h"
 #include "weight.h"
 #include "determineState.h"
+#include "esp_spiffs.h"
 
 
 // core 1 for tasks, core 0 does wifi

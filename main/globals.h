@@ -24,6 +24,8 @@
 #define SCALE_EMPTY_KETTLE_G 1825
 #define MARGIN_OF_ERROR_G 100
 #define CUP_SIZE_ML 200
+#define HOURS_UNTIL_WARM 6
+#define HOURS_UNTIL_COLD 24
 
 extern TaskHandle_t weight_handle;
 extern TaskHandle_t determineState_handle;

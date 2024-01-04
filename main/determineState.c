@@ -3,6 +3,11 @@
 //
 
 #include "determineState.h"
+#include "esp_spiffs.h"
+
+void write_to_flash_memory();
+void read_from_flash_memory();
+
 
 int32_t difference(int32_t a, int32_t b) {
     if (a > b) {
@@ -22,9 +27,9 @@ bool checkForWeight(int32_t weight, int32_t ref) {
 
 enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current) {
     double dif = difftime(freshCoffee, current);
-    if(dif >= 24) {
+    if(dif >= HOURS_UNTIL_COLD) {
         return cold;
-    } else if (dif >= 6) {
+    } else if (dif >= HOURS_UNTIL_WARM) {
         return warm;
     } else {
         return hot;
@@ -88,8 +93,27 @@ void updateState(struct DetailedData* data, enum StateChange stateChange, struct
 
 void determineState(void *pvParameters) {
 
+    //setup spiff
+    esp_vfs_spiffs_conf_t spiff_conf = {
+            .base_path = "/spiff",
+            .partition_label = NULL,
+            .max_files = 5,
+            .format_if_mount_failed = true
+    };
+
+    esp_err_t ret = esp_vfs_spiffs_register(&spiff_conf);
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to mount SPIFFS: %s", esp_err_to_name(ret));
+    } else {
+        write_to_flash_memory();
+        read_from_flash_memory();
+    }
+
     struct DetailedData currentData;
     currentData.state = noKettle;
+
+
 
     while (1) {
         struct Measurement measurement;
@@ -129,4 +153,33 @@ void determineState(void *pvParameters) {
                 break;
         }
     }
+
+    //esp_vfs_spiffs_unregister(NULL);
+}
+
+void write_to_flash_memory() {
+    FILE* file = fopen("/spiffs/example.txt", "r");
+    if (file == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for reading");
+        return;
+    }
+
+    char buffer[128];
+    while (fgets(buffer, sizeof(buffer), file) != NULL) {
+        ESP_LOGE(TAG, "File Line: %s", buffer);
+    }
+
+    fclose(file);
+}
+
+void read_from_flash_memory() {
+    FILE* file = fopen("/spiffs/example.txt", "w");
+    if (file == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for writing");
+        return;
+    }
+
+    fprintf(file, "Hello, ESP32!");
+
+    fclose(file);
 }
