@@ -2,104 +2,28 @@
 // Created by helen on 13.12.2023.
 //
 
+#include <inttypes.h>
+#include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <stdio.h>
+#include <time.h>
+#include "globals.h"
 #include "determineState.h"
 #include "esp_spiffs.h"
 
 void write_to_flash_memory();
 void read_from_flash_memory();
-
-
-int32_t difference(int32_t a, int32_t b) {
-    if (a > b) {
-        return a - b;
-    } else {
-        return b - a;
-    }
-}
-
-int32_t calculateCupsFromWeight(int32_t weight) {
-    return (weight - SCALE_EMPTY_KETTLE_G) / CUP_SIZE_ML;
-}
-
-bool checkForWeight(int32_t weight, int32_t ref) {
-    return (difference(weight, ref) < MARGIN_OF_ERROR_G);
-}
-
-enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current) {
-    double dif = difftime(freshCoffee, current);
-    if(dif >= HOURS_UNTIL_COLD) {
-        return cold;
-    } else if (dif >= HOURS_UNTIL_WARM) {
-        return warm;
-    } else {
-        return hot;
-    }
-}
-
-void updateState(struct DetailedData* data, enum StateChange stateChange, struct Measurement measurement) {
-    const char* tag = "state(update)";
-
-
-    switch (stateChange) {
-        case noMoreKettle:
-            data->state = noKettle;
-            data->measurement = measurement;
-            data->freshCoffee = 0;
-            data->cupsOfCoffee = 0;
-            data->temperature = cold;
-            data->coffeeAmountMl = 0;
-            break;
-        case coffeeEmpty:
-            data->state = emptyKettle;
-            data->measurement = measurement;
-            // fresh coffee timestamp stays same
-            data->cupsOfCoffee = 0;
-            data->temperature = cold;
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
-            break;
-        case newEmptyKettle:
-            data->state = emptyKettle;
-            data->measurement = measurement;
-            data->freshCoffee = 0;
-            data->cupsOfCoffee = 0;
-            data->temperature = cold;
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
-            break;
-        case lessCoffee:
-            data->state = filledKettle;
-            data->measurement = measurement;
-            // fresh coffee timestamp stays same
-            data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
-            data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
-            break;
-        case freshCoffee:
-            data->state = filledKettle;
-            data->measurement = measurement;
-            data->freshCoffee = measurement.timestamp;
-            data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
-            data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
-            break;
-    }
-
-    struct ExternalCoffeeData webData = {
-            .state = data->state,
-            .cupsOfCoffee = data->cupsOfCoffee,
-            .temperature = data->temperature,
-    };
-
-    xQueueSend(apiQueue, &webData, portMAX_DELAY);
-    ESP_LOGI(tag, "State change: (%s)" PRIi32, getStateChangeName(stateChange));
-}
-
+int32_t calculateCupsFromWeight(int32_t weight);
+bool checkForWeight(int32_t weight, int32_t ref);
+void updateState(struct DetailedData *data, enum StateChange stateChange, struct Measurement measurement);
+enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current);
 
 void determineState(void *pvParameters) {
     const char* tag = "state(determine)";
 
     //setup spiff
     esp_vfs_spiffs_conf_t spiff_conf = {
-            .base_path = "/spiff",
+            .base_path = "/storage",
             .partition_label = NULL,
             .max_files = 5,
             .format_if_mount_failed = true
@@ -167,6 +91,24 @@ void write_to_flash_memory() {
     xSemaphoreTake(storage_handle, portMAX_DELAY);
     FILE* file = fopen("/storage/example.txt", "w");
     if (file == NULL) {
+        ESP_LOGE(tag, "Failed to open file for writing");
+        xSemaphoreGive(storage_handle);
+        return;
+    }
+
+    fprintf(file, "Irgendwas");
+    ESP_LOGE(tag, "Data saved!");
+
+    fclose(file);
+    xSemaphoreGive(storage_handle);
+}
+
+void read_from_flash_memory() {
+    const char* tag = "state(load)";
+
+    xSemaphoreTake(storage_handle, portMAX_DELAY);
+    FILE* file = fopen("/storage/example.txt", "r");
+    if (file == NULL) {
         ESP_LOGE(tag, "Failed to open file for reading");
         xSemaphoreGive(storage_handle);
         return;
@@ -181,19 +123,82 @@ void write_to_flash_memory() {
     xSemaphoreGive(storage_handle);
 }
 
-void read_from_flash_memory() {
-    const char* tag = "state(load)";
+int32_t calculateCupsFromWeight(int32_t weight) {
+    return (weight - SCALE_EMPTY_KETTLE_G) / CUP_SIZE_ML;
+}
 
-    xSemaphoreTake(storage_handle, portMAX_DELAY);
-    FILE* file = fopen("/storage/example.txt", "r");
-    if (file == NULL) {
-        ESP_LOGE(tag, "Failed to open file for writing");
-        xSemaphoreGive(storage_handle);
-        return;
+bool checkForWeight(int32_t weight, int32_t ref) {
+    if (weight > ref) {
+        return (weight - ref) < MARGIN_OF_ERROR_G;
+    } else {
+        return (ref - weight) < MARGIN_OF_ERROR_G;
+    }
+}
+
+void updateState(struct DetailedData* data, enum StateChange stateChange, struct Measurement measurement) {
+    const char* tag = "state(update)";
+
+
+    switch (stateChange) {
+        case noMoreKettle:
+            data->state = noKettle;
+            data->measurement = measurement;
+            data->freshCoffee = 0;
+            data->cupsOfCoffee = 0;
+            data->temperature = cold;
+            data->coffeeAmountMl = 0;
+            break;
+        case coffeeEmpty:
+            data->state = emptyKettle;
+            data->measurement = measurement;
+            // fresh coffee timestamp stays same
+            data->cupsOfCoffee = 0;
+            data->temperature = cold;
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            break;
+        case newEmptyKettle:
+            data->state = emptyKettle;
+            data->measurement = measurement;
+            data->freshCoffee = 0;
+            data->cupsOfCoffee = 0;
+            data->temperature = cold;
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            break;
+        case lessCoffee:
+            data->state = filledKettle;
+            data->measurement = measurement;
+            // fresh coffee timestamp stays same
+            data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
+            data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            break;
+        case freshCoffee:
+            data->state = filledKettle;
+            data->measurement = measurement;
+            data->freshCoffee = measurement.timestamp;
+            data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
+            data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
+            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            break;
     }
 
-    fprintf(file, "Hello, ESP32!");
+    struct ExternalCoffeeData webData = {
+            .state = data->state,
+            .cupsOfCoffee = data->cupsOfCoffee,
+            .temperature = data->temperature,
+    };
 
-    fclose(file);
-    xSemaphoreGive(storage_handle);
+    xQueueSend(apiQueue, &webData, portMAX_DELAY);
+    ESP_LOGI(tag, "State change: (%s)" PRIi32, getStateChangeName(stateChange));
+}
+
+enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current) {
+    double dif = difftime(freshCoffee, current);
+    if(dif >= HOURS_UNTIL_COLD) {
+        return cold;
+    } else if (dif >= HOURS_UNTIL_WARM) {
+        return warm;
+    } else {
+        return hot;
+    }
 }
