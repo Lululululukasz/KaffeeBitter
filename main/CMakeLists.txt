@@ -5,5 +5,6 @@ idf_component_register(SRCS
         "wifi.c"
         "weight.c"
         "determineState.c"
+        "api.c"
 
         INCLUDE_DIRS ".")
