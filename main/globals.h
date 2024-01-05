@@ -36,8 +36,6 @@ extern SemaphoreHandle_t apiMessage_handle;
 extern int apiMessageLength;
 extern char* apiMessage;
 
-extern const char *TAG;
-
 extern const char* ntpServer;
 
 enum State {

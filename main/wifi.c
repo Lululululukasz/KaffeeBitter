@@ -6,19 +6,20 @@ void stop_webserver(httpd_handle_t server);
 
 static void
 wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
+    const char* tag = "wifi(event)";
     switch (event_id) {
         case WIFI_EVENT_STA_START:
-            printf("WiFi connecting WIFI_EVENT_STA_START ... \n");
+            ESP_LOGI(tag, "WiFi connecting WIFI_EVENT_STA_START ... \n");
             break;
         case WIFI_EVENT_STA_CONNECTED:
-            printf("WiFi connected WIFI_EVENT_STA_CONNECTED ... \n");
+            ESP_LOGI(tag, "WiFi connected WIFI_EVENT_STA_CONNECTED ... \n");
 
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
-            printf("WiFi lost connection WIFI_EVENT_STA_DISCONNECTED ... \n");
+            ESP_LOGI(tag, "WiFi lost connection WIFI_EVENT_STA_DISCONNECTED ... \n");
             break;
         case IP_EVENT_STA_GOT_IP:
-            printf("WiFi got IP ... \n\n");
+            ESP_LOGI(tag, "WiFi got IP ... \n\n");
             break;
         default:
             break;
@@ -26,8 +27,10 @@ wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t
 }
 
 void wifi_connection() {
-    ESP_LOGI(TAG, "Wifi Network: (%s)", CONFIG_WIFI_SSID);
-    ESP_LOGI(TAG, "Wifi Password: (%s)", CONFIG_WIFI_PASSWORD);
+    const char* tag = "wifi(connection)";
+
+    ESP_LOGI(tag, "Wifi Network: (%s)", CONFIG_WIFI_SSID);
+    ESP_LOGI(tag, "Wifi Password: (%s)", CONFIG_WIFI_PASSWORD);
 
     nvs_flash_init();
     esp_netif_init();
@@ -78,6 +81,8 @@ void wifi(void *pvParameters) {
 }
 
 void api(void *pvParameters) {
+    const char* tag = "wifi(api)";
+
     struct ExternalCoffeeData currentWebData;
 
     while (1) {
@@ -92,7 +97,7 @@ void api(void *pvParameters) {
         sprintf(apiMessage, "{%s, %d, %s}", getStateName(currentWebData.state), (int) currentWebData.cupsOfCoffee,
                 getTemperatureName(currentWebData.temperature));
 
-        ESP_LOGI(TAG, "api message: (%s)", apiMessage);
+        ESP_LOGI(tag, "api message: (%s)", apiMessage);
         xSemaphoreGive(apiMessage_handle);
 
     }
@@ -100,6 +105,8 @@ void api(void *pvParameters) {
 
 
 esp_err_t initialize_time(void) {
+    const char* tag = "wifi(time)";
+
     // SET SNTP
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     esp_netif_sntp_init(&config);
@@ -115,15 +122,17 @@ esp_err_t initialize_time(void) {
     char buffer[20];
     time_t now = time(NULL);
     strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
-    ESP_LOGI(TAG, "Current time is: %s", buffer);
+    ESP_LOGI(tag, "Current time is: %s", buffer);
 
     return response;
 }
 
 esp_err_t post_handler(httpd_req_t *req) {
+    const char* tag = "wifi(post)";
+
     xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
     httpd_resp_send(req, apiMessage, apiMessageLength);
-    ESP_LOGI(TAG, "api message: (%s)", apiMessage);
+    ESP_LOGI(tag, "api message: (%s)", apiMessage);
     xSemaphoreGive(apiMessage_handle);
     return ESP_OK;
 }

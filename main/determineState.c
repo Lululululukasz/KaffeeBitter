@@ -37,6 +37,9 @@ enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current) 
 }
 
 void updateState(struct DetailedData* data, enum StateChange stateChange, struct Measurement measurement) {
+    const char* tag = "state(update)";
+
+
     switch (stateChange) {
         case noMoreKettle:
             data->state = noKettle;
@@ -87,11 +90,12 @@ void updateState(struct DetailedData* data, enum StateChange stateChange, struct
     };
 
     xQueueSend(apiQueue, &webData, portMAX_DELAY);
-    ESP_LOGI(TAG, "State change: (%s)" PRIi32, getStateChangeName(stateChange));
+    ESP_LOGI(tag, "State change: (%s)" PRIi32, getStateChangeName(stateChange));
 }
 
 
 void determineState(void *pvParameters) {
+    const char* tag = "state(determine)";
 
     //setup spiff
     esp_vfs_spiffs_conf_t spiff_conf = {
@@ -104,7 +108,7 @@ void determineState(void *pvParameters) {
     esp_err_t ret = esp_vfs_spiffs_register(&spiff_conf);
 
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to mount SPIFFS: %s", esp_err_to_name(ret));
+        ESP_LOGE(tag, "Failed to mount SPIFFS: %s", esp_err_to_name(ret));
     } else {
         write_to_flash_memory();
         read_from_flash_memory();
@@ -158,24 +162,28 @@ void determineState(void *pvParameters) {
 }
 
 void write_to_flash_memory() {
-    FILE* file = fopen("/spiffs/example.txt", "r");
+    const char* tag = "state(save)";
+
+    FILE* file = fopen("/storage/example.txt", "r");
     if (file == NULL) {
-        ESP_LOGE(TAG, "Failed to open file for reading");
+        ESP_LOGE(tag, "Failed to open file for reading");
         return;
     }
 
     char buffer[128];
     while (fgets(buffer, sizeof(buffer), file) != NULL) {
-        ESP_LOGE(TAG, "File Line: %s", buffer);
+        ESP_LOGE(tag, "File Line: %s", buffer);
     }
 
     fclose(file);
 }
 
 void read_from_flash_memory() {
-    FILE* file = fopen("/spiffs/example.txt", "w");
+    const char* tag = "state(load)";
+
+    FILE* file = fopen("/storage/example.txt", "w");
     if (file == NULL) {
-        ESP_LOGE(TAG, "Failed to open file for writing");
+        ESP_LOGE(tag, "Failed to open file for writing");
         return;
     }
 

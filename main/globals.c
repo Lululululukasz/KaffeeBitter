@@ -12,8 +12,6 @@ SemaphoreHandle_t apiMessage_handle = NULL;
 int apiMessageLength = 0;
 char* apiMessage = NULL;
 
-const char* TAG = "hx711";
-
 const char* ntpServer = "pool.ntp.org";
 
 const char *getStateName(enum State state) {
