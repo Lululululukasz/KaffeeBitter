@@ -10,6 +10,7 @@
 #include "globals.h"
 
 void api(void *pvParameters) {
+    const char* tag = "api(task)";
     struct ExternalCoffeeData currentWebData;
 
     while (1) {
@@ -24,7 +25,7 @@ void api(void *pvParameters) {
         sprintf(apiMessage, "{%s, %d, %s}", getStateName(currentWebData.state), (int) currentWebData.cupsOfCoffee,
                 getTemperatureName(currentWebData.temperature));
 
-        ESP_LOGI(TAG, "api message: %s", apiMessage);
+        ESP_LOGI(tag, "api message: %s", apiMessage);
         xSemaphoreGive(apiMessage_handle);
 
     }

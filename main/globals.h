@@ -35,6 +35,7 @@ extern QueueHandle_t apiQueue;
 extern SemaphoreHandle_t apiMessage_handle;
 extern int apiMessageLength;
 extern char* apiMessage;
+extern SemaphoreHandle_t storage_handle;
 
 extern const char* ntpServer;
 

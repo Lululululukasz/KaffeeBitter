@@ -164,9 +164,11 @@ void determineState(void *pvParameters) {
 void write_to_flash_memory() {
     const char* tag = "state(save)";
 
-    FILE* file = fopen("/storage/example.txt", "r");
+    xSemaphoreTake(storage_handle, portMAX_DELAY);
+    FILE* file = fopen("/storage/example.txt", "w");
     if (file == NULL) {
         ESP_LOGE(tag, "Failed to open file for reading");
+        xSemaphoreGive(storage_handle);
         return;
     }
 
@@ -176,18 +178,22 @@ void write_to_flash_memory() {
     }
 
     fclose(file);
+    xSemaphoreGive(storage_handle);
 }
 
 void read_from_flash_memory() {
     const char* tag = "state(load)";
 
-    FILE* file = fopen("/storage/example.txt", "w");
+    xSemaphoreTake(storage_handle, portMAX_DELAY);
+    FILE* file = fopen("/storage/example.txt", "r");
     if (file == NULL) {
         ESP_LOGE(tag, "Failed to open file for writing");
+        xSemaphoreGive(storage_handle);
         return;
     }
 
     fprintf(file, "Hello, ESP32!");
 
     fclose(file);
+    xSemaphoreGive(storage_handle);
 }

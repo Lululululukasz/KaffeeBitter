@@ -65,12 +65,13 @@ void wifi_initiation() {
 }
 
 void wifi_connection() {
+    const char* tag = "wifi(connect)";
     esp_err_t err = esp_wifi_connect();
-    printf("Wifi connection: %s\n", esp_err_to_name(err));
+    ESP_LOGI(tag, "Wifi connection: %s\n", esp_err_to_name(err));
 
     // if connection failed try to reconnect every 30s
     while (err != ESP_OK) {
-        printf("Wifi connection failed: %s\n", esp_err_to_name(err));
+        ESP_LOGI(tag, "Wifi connection failed: %s\n", esp_err_to_name(err));
         vTaskDelay(10000);
         err = esp_wifi_connect();
     }
