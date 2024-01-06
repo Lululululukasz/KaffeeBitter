@@ -147,5 +147,6 @@ void api(void *pvParameters) {
     	} else {
         	ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
     	}
+	esp_http_client_cleanup(client);
     }
 }
