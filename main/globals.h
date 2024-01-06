@@ -53,7 +53,8 @@ enum StateChange {
     coffeeEmpty,
     newEmptyKettle,
     lessCoffee,
-    freshCoffee
+    freshCoffee,
+    stateLoaded
 };
 
 const char* getStateChangeName(enum StateChange stateChange);

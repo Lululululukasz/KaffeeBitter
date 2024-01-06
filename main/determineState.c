@@ -46,6 +46,7 @@ void determineState(void *pvParameters) {
 
     if (check_for_save_file()) {
         read_from_flash_memory(&currentData);
+        updateState(&currentData, stateLoaded, currentData.measurement);
     } else {
         currentData.state = noKettle;
         write_to_flash_memory(&currentData);
@@ -124,10 +125,10 @@ void write_to_flash_memory(struct DetailedData *data) {
     }
 
     fprintf(file,
-            "{state: %u, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %u, coffeeMl: %ld}",
+            "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %d, coffeeMl: %ld}",
             data->state, data->measurement.weightG, data->measurement.timestamp, data->freshCoffee, data->cupsOfCoffee, data->temperature, data->coffeeAmountMl);
     ESP_LOGE(tag,
-             "{state: %u, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %u, coffeeMl: %ld}",
+             "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %d, coffeeMl: %ld}",
              data->state, data->measurement.weightG, data->measurement.timestamp, data->freshCoffee, data->cupsOfCoffee, data->temperature, data->coffeeAmountMl);
     fclose(file);
     char buffer[20];
@@ -147,21 +148,26 @@ void read_from_flash_memory(struct DetailedData *data) {
         return;
     }
 
-    char buffer[128];
-    while (fgets(buffer, sizeof(buffer), file) != NULL) {
+        int istate = 0, itemp = 0;
         long long mtime = 0, freshTime= 0;
-
-        ESP_LOGE(tag, "File Line: %s", buffer);
         fscanf(file,
                "{state: %u, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %u, coffeeMl: %ld}",
-               &data->state, &data->measurement.weightG, &mtime, &freshTime, &data->cupsOfCoffee, &data->temperature, &data->coffeeAmountMl);
-        data->measurement.timestamp = mtime;
-        data->freshCoffee = freshTime;
+               &data->state, &data->measurement.weightG, &data->measurement.timestamp, &data->freshCoffee, &data->cupsOfCoffee, &data->temperature, &data->coffeeAmountMl);
+
+        /*
+    data->measurement.timestamp = mtime;
+    data->freshCoffee = freshTime;
+    data->state = istate;
+    data->temperature = itemp;
+         */
+
+        ESP_LOGE(tag,
+                 "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %d, coffeeMl: %ld}",
+                 data->state, data->measurement.weightG, data->measurement.timestamp, data->freshCoffee, data->cupsOfCoffee, data->temperature, data->coffeeAmountMl);
 
         char buffer[20];
         strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&data->freshCoffee));
         ESP_LOGI(tag, "Last fresh Coffee: %s", buffer);
-    }
 
     fclose(file);
     xSemaphoreGive(storage_handle);
@@ -223,6 +229,8 @@ void updateState(struct DetailedData *data, enum StateChange stateChange, struct
             data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
             data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
             data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            break;
+        case stateLoaded:
             break;
     }
 

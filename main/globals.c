@@ -40,6 +40,8 @@ const char *getStateChangeName(enum StateChange stateChange) {
             return "lessCoffee";
         case freshCoffee:
             return "freshCoffee";
+        case stateLoaded:
+            return "stateLoaded";
     }
     return "Error";
 }
