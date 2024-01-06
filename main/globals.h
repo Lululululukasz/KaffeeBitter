@@ -18,7 +18,7 @@
 #include <esp_netif_sntp.h>
 #include "time.h"
 
-#define N 32
+// #define N 32
 #define SCALE_ZERO_GRAMS -178223
 #define SCALE_500_GRAMS -153420
 #define SCALE_EMPTY_KETTLE_G 1825
