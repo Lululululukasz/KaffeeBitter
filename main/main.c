@@ -4,7 +4,9 @@
 #include "globals.h"
 #include "weight.h"
 #include "determineState.h"
+#include "wifi.h"
 #include "api.h"
+
 
 // core 1 for tasks, core 0 does wifi
 
@@ -13,6 +15,7 @@ void app_main()
     scaleQueue = xQueueCreate(5, sizeof(struct Measurement));
     apiQueue = xQueueCreate(5, sizeof(struct ExternalCoffeeData));
     apiMessage_handle = xSemaphoreCreateMutex();
+    storage_handle = xSemaphoreCreateMutex();
 
     xTaskCreatePinnedToCore(
             wifi, // function

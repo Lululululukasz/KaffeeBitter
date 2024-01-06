@@ -11,8 +11,8 @@ QueueHandle_t apiQueue = NULL;
 SemaphoreHandle_t apiMessage_handle = NULL;
 int apiMessageLength = 0;
 char* apiMessage = NULL;
-
-const char* TAG = "hx711";
+SemaphoreHandle_t storage_handle = NULL;
+bool timeConnected = false;
 
 const char* ntpServer = "pool.ntp.org";
 
@@ -40,6 +40,8 @@ const char *getStateChangeName(enum StateChange stateChange) {
             return "lessCoffee";
         case freshCoffee:
             return "freshCoffee";
+        case stateLoaded:
+            return "stateLoaded";
     }
     return "Error";
 }
