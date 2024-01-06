@@ -19,11 +19,11 @@ const char* ntpServer = "pool.ntp.org";
 const char *getStateName(enum State state) {
     switch (state) {
         case noKettle:
-            return "noKettle";
+            return "no";
         case emptyKettle:
-            return "emptyKettle";
+            return "empty";
         case filledKettle:
-            return "filledKettle";
+            return "filled";
     }
     return "Error";
 }
