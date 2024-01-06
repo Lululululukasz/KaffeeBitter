@@ -124,12 +124,15 @@ void write_to_flash_memory(struct DetailedData *data) {
     }
 
     fprintf(file,
-            "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cupsOfCoffee: %ld, temperature: %u, coffeeAmountMl: %ld}",
+            "{state: %u, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %u, coffeeMl: %ld}",
             data->state, data->measurement.weightG, data->measurement.timestamp, data->freshCoffee, data->cupsOfCoffee, data->temperature, data->coffeeAmountMl);
     ESP_LOGE(tag,
-             "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cupsOfCoffee: %ld, temperature: %u, coffeeAmountMl: %ld}",
+             "{state: %u, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %u, coffeeMl: %ld}",
              data->state, data->measurement.weightG, data->measurement.timestamp, data->freshCoffee, data->cupsOfCoffee, data->temperature, data->coffeeAmountMl);
     fclose(file);
+    char buffer[20];
+    strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&data->freshCoffee));
+    ESP_LOGI(tag, "Last fresh Coffee: %s", buffer);
     xSemaphoreGive(storage_handle);
 }
 
@@ -146,11 +149,18 @@ void read_from_flash_memory(struct DetailedData *data) {
 
     char buffer[128];
     while (fgets(buffer, sizeof(buffer), file) != NULL) {
+        long long mtime = 0, freshTime= 0;
+
         ESP_LOGE(tag, "File Line: %s", buffer);
         fscanf(file,
-               "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cupsOfCoffee: %ld, temperature: %u, coffeeAmountMl: %ld}",
-               &data->state, &data->measurement.weightG, &data->measurement.timestamp, &data->freshCoffee, &data->cupsOfCoffee, &data->temperature, &data->coffeeAmountMl);
-        ESP_LOGE(tag, "File Line: %s", buffer);
+               "{state: %u, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cups: %ld, temp: %u, coffeeMl: %ld}",
+               &data->state, &data->measurement.weightG, &mtime, &freshTime, &data->cupsOfCoffee, &data->temperature, &data->coffeeAmountMl);
+        data->measurement.timestamp = mtime;
+        data->freshCoffee = freshTime;
+
+        char buffer[20];
+        strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&data->freshCoffee));
+        ESP_LOGI(tag, "Last fresh Coffee: %s", buffer);
     }
 
     fclose(file);

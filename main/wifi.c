@@ -148,6 +148,8 @@ esp_err_t initialize_time(void) {
     strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
     ESP_LOGI(tag, "Current time is: %s", buffer);
 
+    timeConnected = true;
+
     return response;
 }
 

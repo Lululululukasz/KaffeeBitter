@@ -36,6 +36,7 @@ extern SemaphoreHandle_t apiMessage_handle;
 extern int apiMessageLength;
 extern char* apiMessage;
 extern SemaphoreHandle_t storage_handle;
+extern bool timeConnected;
 
 extern const char* ntpServer;
 

@@ -11,7 +11,8 @@ QueueHandle_t apiQueue = NULL;
 SemaphoreHandle_t apiMessage_handle = NULL;
 int apiMessageLength = 0;
 char* apiMessage = NULL;
-extern SemaphoreHandle_t storage_handle = NULL;
+SemaphoreHandle_t storage_handle = NULL;
+bool timeConnected = false;
 
 const char* ntpServer = "pool.ntp.org";
 

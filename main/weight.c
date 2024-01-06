@@ -48,6 +48,7 @@ void weight(void *pvParameters) {
     // read from device
     while (1)
     {
+        vTaskDelay(pdMS_TO_TICKS(1000));
         int32_t data;
 
         data = readRawScaleValue(dev, CONFIG_EXAMPLE_AVG_TIMES);
@@ -59,13 +60,14 @@ void weight(void *pvParameters) {
         measurement.weightG = inGrams(data);
         //ESP_LOGI(tag, "Data in g: %" PRIi32, measurement.weightG);
 
+        if(!timeConnected) {
+            continue;
+        }
         measurement.timestamp = time(NULL);
         char buffer[20];
         strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", localtime(&measurement.timestamp));
         //ESP_LOGI(tag, "Current time is: %s", buffer);
 
         xQueueSend(scaleQueue, &measurement, portMAX_DELAY);
-
-        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
