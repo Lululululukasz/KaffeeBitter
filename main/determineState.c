@@ -11,15 +11,22 @@
 #include "determineState.h"
 #include "esp_spiffs.h"
 
-void write_to_flash_memory();
-void read_from_flash_memory();
+bool check_for_save_file();
+
+void write_to_flash_memory(struct DetailedData *data);
+
+void read_from_flash_memory(struct DetailedData *data);
+
 int32_t calculateCupsFromWeight(int32_t weight);
+
 bool checkForWeight(int32_t weight, int32_t ref);
+
 void updateState(struct DetailedData *data, enum StateChange stateChange, struct Measurement measurement);
+
 enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current);
 
 void determineState(void *pvParameters) {
-    const char* tag = "state(determine)";
+    const char *tag = "state(determine)";
 
     //setup spiff
     esp_vfs_spiffs_conf_t spiff_conf = {
@@ -33,14 +40,16 @@ void determineState(void *pvParameters) {
 
     if (ret != ESP_OK) {
         ESP_LOGE(tag, "Failed to mount SPIFFS: %s", esp_err_to_name(ret));
-    } else {
-        write_to_flash_memory();
-        read_from_flash_memory();
     }
 
     struct DetailedData currentData;
-    currentData.state = noKettle;
 
+    if (check_for_save_file()) {
+        read_from_flash_memory(&currentData);
+    } else {
+        currentData.state = noKettle;
+        write_to_flash_memory(&currentData);
+    }
 
 
     while (1) {
@@ -69,7 +78,7 @@ void determineState(void *pvParameters) {
                 } // else empty Kettle -> nothing changed
                 break;
             case filledKettle:
-                if (cups >= currentData.cupsOfCoffee ) {
+                if (cups >= currentData.cupsOfCoffee) {
                     break; // no change or someone is pressing on the scale -> ignore
                 } else if (cups > 0) {
                     updateState(&currentData, lessCoffee, measurement);
@@ -85,29 +94,50 @@ void determineState(void *pvParameters) {
     //esp_vfs_spiffs_unregister(NULL);
 }
 
-void write_to_flash_memory() {
-    const char* tag = "state(save)";
+bool check_for_save_file() {
+    const char *tag = "state(checkSave)";
 
     xSemaphoreTake(storage_handle, portMAX_DELAY);
-    FILE* file = fopen("/storage/example.txt", "w");
+    FILE *file = fopen("/storage/data.txt", "r");
+
+    if (file == NULL) {
+        ESP_LOGE(tag, "No File");
+        xSemaphoreGive(storage_handle);
+        return false;
+    } else {
+        ESP_LOGE(tag, "File Found");
+        fclose(file);
+        xSemaphoreGive(storage_handle);
+        return true;
+    }
+}
+
+void write_to_flash_memory(struct DetailedData *data) {
+    const char *tag = "state(save)";
+
+    xSemaphoreTake(storage_handle, portMAX_DELAY);
+    FILE *file = fopen("/storage/data.txt", "w");
     if (file == NULL) {
         ESP_LOGE(tag, "Failed to open file for writing");
         xSemaphoreGive(storage_handle);
         return;
     }
 
-    fprintf(file, "Irgendwas");
-    ESP_LOGE(tag, "Data saved!");
-
+    fprintf(file,
+            "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cupsOfCoffee: %ld, temperature: %u, coffeeAmountMl: %ld}",
+            data->state, data->measurement.weightG, data->measurement.timestamp, data->freshCoffee, data->cupsOfCoffee, data->temperature, data->coffeeAmountMl);
+    ESP_LOGE(tag,
+             "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cupsOfCoffee: %ld, temperature: %u, coffeeAmountMl: %ld}",
+             data->state, data->measurement.weightG, data->measurement.timestamp, data->freshCoffee, data->cupsOfCoffee, data->temperature, data->coffeeAmountMl);
     fclose(file);
     xSemaphoreGive(storage_handle);
 }
 
-void read_from_flash_memory() {
-    const char* tag = "state(load)";
+void read_from_flash_memory(struct DetailedData *data) {
+    const char *tag = "state(load)";
 
     xSemaphoreTake(storage_handle, portMAX_DELAY);
-    FILE* file = fopen("/storage/example.txt", "r");
+    FILE *file = fopen("/storage/data.txt", "r");
     if (file == NULL) {
         ESP_LOGE(tag, "Failed to open file for reading");
         xSemaphoreGive(storage_handle);
@@ -116,6 +146,10 @@ void read_from_flash_memory() {
 
     char buffer[128];
     while (fgets(buffer, sizeof(buffer), file) != NULL) {
+        ESP_LOGE(tag, "File Line: %s", buffer);
+        fscanf(file,
+               "{state: %d, measurement: {weightG: %ld, timestamp: %lld}, freshCoffee: %lld, cupsOfCoffee: %ld, temperature: %u, coffeeAmountMl: %ld}",
+               &data->state, &data->measurement.weightG, &data->measurement.timestamp, &data->freshCoffee, &data->cupsOfCoffee, &data->temperature, &data->coffeeAmountMl);
         ESP_LOGE(tag, "File Line: %s", buffer);
     }
 
@@ -135,8 +169,8 @@ bool checkForWeight(int32_t weight, int32_t ref) {
     }
 }
 
-void updateState(struct DetailedData* data, enum StateChange stateChange, struct Measurement measurement) {
-    const char* tag = "state(update)";
+void updateState(struct DetailedData *data, enum StateChange stateChange, struct Measurement measurement) {
+    const char *tag = "state(update)";
 
 
     switch (stateChange) {
@@ -190,11 +224,12 @@ void updateState(struct DetailedData* data, enum StateChange stateChange, struct
 
     xQueueSend(apiQueue, &webData, portMAX_DELAY);
     ESP_LOGI(tag, "State change: (%s)" PRIi32, getStateChangeName(stateChange));
+    write_to_flash_memory(data);
 }
 
 enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current) {
     double dif = difftime(freshCoffee, current);
-    if(dif >= HOURS_UNTIL_COLD) {
+    if (dif >= HOURS_UNTIL_COLD) {
         return cold;
     } else if (dif >= HOURS_UNTIL_WARM) {
         return warm;
