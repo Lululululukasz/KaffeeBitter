@@ -2,13 +2,10 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include "globals.h"
-#include "weight.h"
-#include "determineState.h"
-#include "wifi.h"
-#include "api.h"
-
-
-// core 1 for tasks, core 0 does wifi
+#include "tasks/weight.h"
+#include "tasks/determineState.h"
+#include "tasks/wifi.h"
+#include "tasks/api.h"
 
 void app_main()
 {
@@ -22,29 +19,9 @@ void app_main()
             "wifi", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
-            2, // priority
-            &weight_handle, // task handle: interaction from within other tasks
-            0
-    );
-
-    xTaskCreatePinnedToCore(
-            weight, // function
-            "weight", // name of task in debug messages
-            configMINIMAL_STACK_SIZE * 5, // stack size
-            NULL, // parameters
-            2, // priority
-            &weight_handle, // task handle: interaction from within other tasks
-            1
-    );
-
-    xTaskCreatePinnedToCore(
-            determineState, // function
-            "determineState", // name of task in debug messages
-            configMINIMAL_STACK_SIZE * 5, // stack size
-            NULL, // parameters
-            3, // priority
-            &determineState_handle, // task handle: interaction from within other tasks
-            1
+            1, // priority
+            NULL, // task handle: interaction from within other tasks
+            0 // core
     );
 
     xTaskCreatePinnedToCore(
@@ -52,10 +29,29 @@ void app_main()
             "api", // name of task in debug messages
             configMINIMAL_STACK_SIZE * 5, // stack size
             NULL, // parameters
-            4, // priority
-            &api_handle, // task handle: interaction from within other tasks
-            0
+            2, // priority
+            NULL, // task handle: interaction from within other tasks
+            0 // core
     );
 
+    xTaskCreatePinnedToCore(
+            weight, // function
+            "weight", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            1, // priority
+            NULL, // task handle: interaction from within other tasks
+            1 // core
+    );
+
+    xTaskCreatePinnedToCore(
+            determineState, // function
+            "determineState", // name of task in debug messages
+            configMINIMAL_STACK_SIZE * 5, // stack size
+            NULL, // parameters
+            2, // priority
+            NULL, // task handle: interaction from within other tasks
+            1 // core
+    );
 
 }

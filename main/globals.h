@@ -18,7 +18,6 @@
 #include <esp_netif_sntp.h>
 #include "time.h"
 
-// #define N 32
 #define SCALE_ZERO_GRAMS -178223
 #define SCALE_500_GRAMS -153420
 #define SCALE_EMPTY_KETTLE_G 1825
@@ -26,26 +25,26 @@
 #define CUP_SIZE_ML 200
 #define HOURS_UNTIL_WARM 6
 #define HOURS_UNTIL_COLD 24
+#define NTP_SERVER "pool.ntp.org"
+#define TIMEZONE "GMT-1"
 
-extern TaskHandle_t weight_handle;
-extern TaskHandle_t determineState_handle;
-extern TaskHandle_t api_handle;
 extern QueueHandle_t scaleQueue;
 extern QueueHandle_t apiQueue;
+
 extern SemaphoreHandle_t apiMessage_handle;
 extern int apiMessageLength;
 extern char* apiMessage;
+
 extern SemaphoreHandle_t storage_handle;
+
 extern bool timeConnected;
 
-extern const char* ntpServer;
 
 enum State {
     noKettle,
     emptyKettle,
     filledKettle
 };
-
 const char* getStateName(enum State state);
 
 enum StateChange {
@@ -56,7 +55,6 @@ enum StateChange {
     freshCoffee,
     stateLoaded
 };
-
 const char* getStateChangeName(enum StateChange stateChange);
 
 enum Temperature {
@@ -75,7 +73,6 @@ struct Measurement {
     int32_t weightG;
     time_t timestamp;
 };
-
 const char* getTemperatureName(enum Temperature temperature);
 
 struct DetailedData {

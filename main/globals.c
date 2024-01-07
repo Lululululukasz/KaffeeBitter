@@ -3,18 +3,16 @@
 //
 #include "globals.h"
 
-TaskHandle_t weight_handle = NULL;
-TaskHandle_t determineState_handle = NULL;
-TaskHandle_t api_handle = NULL;
 QueueHandle_t scaleQueue = NULL;
 QueueHandle_t apiQueue = NULL;
+
 SemaphoreHandle_t apiMessage_handle = NULL;
 int apiMessageLength = 0;
 char* apiMessage = NULL;
-SemaphoreHandle_t storage_handle = NULL;
-bool timeConnected = false;
 
-const char* ntpServer = "pool.ntp.org";
+SemaphoreHandle_t storage_handle = NULL;
+
+bool timeConnected = false;
 
 const char *getStateName(enum State state) {
     switch (state) {
@@ -24,8 +22,9 @@ const char *getStateName(enum State state) {
             return "empty";
         case filledKettle:
             return "filled";
+        default:
+            return "Error";
     }
-    return "Error";
 }
 
 const char *getStateChangeName(enum StateChange stateChange) {
@@ -42,8 +41,9 @@ const char *getStateChangeName(enum StateChange stateChange) {
             return "freshCoffee";
         case stateLoaded:
             return "stateLoaded";
+        default:
+            return "Error";
     }
-    return "Error";
 }
 
 const char* getTemperatureName(enum Temperature temperature) {
@@ -54,6 +54,7 @@ const char* getTemperatureName(enum Temperature temperature) {
             return "warm";
         case cold:
             return "cold";
+        default:
+            return "Error";
     }
-    return "Error";
 }
