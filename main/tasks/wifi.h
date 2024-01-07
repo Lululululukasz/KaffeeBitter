@@ -8,5 +8,4 @@
 // wifi task: initialises the wifi connection, the server, and the time.
 void wifi(void *pvParameters);
 
-
 #endif //HX711_WIFI_H

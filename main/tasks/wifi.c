@@ -11,6 +11,7 @@
 #include <esp_netif_sntp.h>
 #include "time.h"
 #include "globals.h"
+#include "sdkconfig.h"
 
 // connects or reconnects to the wifi
 void wifi_initiation();
@@ -43,7 +44,6 @@ void wifi_initiation() {
     const char* tag = "wifi(init)";
 
     ESP_LOGI(tag, "Connecting to Wifi Network: %s", CONFIG_WIFI_SSID);
-    //ESP_LOGI(TAG, "Wifi Password: %s", CONFIG_WIFI_PASSWORD);
 
     nvs_flash_init();
     esp_netif_init();
@@ -67,14 +67,15 @@ void wifi_initiation() {
 void wifi_connection() {
     const char* tag = "wifi(connect)";
     esp_err_t err = esp_wifi_connect();
-    ESP_LOGI(tag, "Wifi connection: %s\n", esp_err_to_name(err));
 
-    // if connection failed try to reconnect every 30s
+    // if connection failed try to reconnect every 10s
     while (err != ESP_OK) {
         ESP_LOGI(tag, "Wifi connection failed: %s\n", esp_err_to_name(err));
-        vTaskDelay(10000);
+        vTaskDelay(pdMS_TO_TICKS(10000));
         err = esp_wifi_connect();
     }
+
+    ESP_LOGI(tag, "Wifi connection successful: %s\n", esp_err_to_name(err));
 }
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
@@ -82,13 +83,13 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
 
     switch (event_id) {
         case WIFI_EVENT_STA_START:
-            ESP_LOGI(tag, "WiFi connecting WIFI_EVENT_STA_START ... \n");
+            ESP_LOGI(tag, "WiFi connecting ... \n");
             break;
         case WIFI_EVENT_STA_CONNECTED:
-            ESP_LOGI(tag, "WiFi connected WIFI_EVENT_STA_CONNECTED ... \n");
+            ESP_LOGI(tag, "WiFi connected ... \n");
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
-            ESP_LOGI(tag, "WiFi lost connection WIFI_EVENT_STA_DISCONNECTED ... \n");
+            ESP_LOGI(tag, "WiFi lost connection ... \n");
             wifi_connection();
             break;
         case IP_EVENT_STA_GOT_IP:
@@ -110,20 +111,22 @@ void server_initiation() {
             .user_ctx = NULL};
     httpd_register_uri_handler(server_handle, &uri_post);
 
-    httpd_uri_t uri_post2 = {
+    httpd_uri_t uri_post_data = {
             .uri = "/data",
             .method = HTTP_GET,
             .handler = post_handler,
             .user_ctx = NULL};
-    httpd_register_uri_handler(server_handle, &uri_post2);
+    httpd_register_uri_handler(server_handle, &uri_post_data);
 }
 
 esp_err_t post_handler(httpd_req_t *req) {
     const char* tag = "wifi(post)";
 
     xSemaphoreTake(apiMessage_handle, portMAX_DELAY);
+
     httpd_resp_send(req, apiMessage, apiMessageLength);
-    ESP_LOGI(tag, "api message: (%s)", apiMessage);
+    ESP_LOGI(tag, "Api message posted: (%s)", apiMessage);
+
     xSemaphoreGive(apiMessage_handle);
     return ESP_OK;
 }
@@ -132,11 +135,11 @@ esp_err_t initialize_time(void) {
     const char* tag = "wifi(time)";
 
     // SET SNTP
-    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_NTP_SERVER);
     esp_netif_sntp_init(&config);
 
     // set timezone
-    setenv("TZ", "GMT-1", 1);
+    setenv("TZ", CONFIG_TIMEZONE, 1);
     tzset();
 
     // GET SNTP response
