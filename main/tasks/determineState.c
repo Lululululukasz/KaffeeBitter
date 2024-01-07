@@ -11,12 +11,25 @@
 #include "determineState.h"
 #include "esp_spiffs.h"
 
+// true if there is a file, false if not
 bool check_for_save_file();
+
+// loads the persistently saved data into the parameter data
 void read_from_flash_memory(struct DetailedData *data);
+
+// writes the parameter data into persistent file
 void write_to_flash_memory(struct DetailedData *data);
+
+// updates a changed state, gives the updated state to the api
 void updateState(struct DetailedData *data, enum StateChange stateChange, struct Measurement measurement);
+
+// determines the amount of cups of coffee in the kettle
 int32_t calculateCupsFromWeight(int32_t weight);
+
+// compares if the two weights are close enough to each other
 bool checkForWeight(int32_t weight, int32_t ref);
+
+// determines the apprximate temperature of the coffee
 enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current);
 
 void determineState(void *pvParameters) {

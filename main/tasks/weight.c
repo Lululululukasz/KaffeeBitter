@@ -13,7 +13,10 @@
 #include "time.h"
 #include "globals.h"
 
+// converts raw read into grams
 int32_t inGrams(int32_t raw);
+
+// reads raw measurement from the scale
 int32_t readRawScaleValue(hx711_t dev, int times);
 
 void weight(void *pvParameters) {
@@ -30,7 +33,7 @@ void weight(void *pvParameters) {
     // read from device
     while (1)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(5000));
 
         int32_t data;
         data = readRawScaleValue(dev, CONFIG_EXAMPLE_AVG_TIMES);
