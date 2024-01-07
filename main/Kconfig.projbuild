@@ -20,7 +20,7 @@ menu "Example configuration"
         	
 endmenu
 
-menu "wifi"
+menu "Wifi"
     config WIFI_SSID
     string "WIFI_SSID"
     default "myssid"
@@ -28,4 +28,46 @@ menu "wifi"
     config WIFI_PASSWORD
     string "WIFI_PASSWORD"
     default "mypassword"
+endmenu
+
+menu "Scale"
+    config SCALE_ZERO_GRAMS
+    int "SCALE_ZERO_GRAMS"
+    default "-178223"
+
+    config SCALE_500_GRAMS
+    int "SCALE_500_GRAMS"
+    default "-153420"
+
+    config SCALE_EMPTY_KETTLE_G
+    int "SCALE_EMPTY_KETTLE_G"
+    default "1825"
+
+    config MARGIN_OF_ERROR_G
+        int "MARGIN_OF_ERROR_G"
+        default "100"
+endmenu
+
+menu "Coffee"
+    config CUP_SIZE_ML
+    int "CUP_SIZE_ML"
+    default "200"
+
+    config HOURS_UNTIL_WARM
+    int "HOURS_UNTIL_WARM"
+    default "6"
+
+    config HOURS_UNTIL_COLD
+    int "HOURS_UNTIL_COLD"
+    default "24"
+endmenu
+
+menu "SNTP"
+    config NTP_SERVER
+    string "NTP_SERVER"
+    default "pool.ntp.org"
+
+    config TIMEZONE
+    string "TIMEZONE"
+    default "GMT-1"
 endmenu

@@ -18,6 +18,7 @@
 #include <esp_netif_sntp.h>
 #include "time.h"
 
+/*
 #define SCALE_ZERO_GRAMS -178223
 #define SCALE_500_GRAMS -153420
 #define SCALE_EMPTY_KETTLE_G 1825
@@ -27,6 +28,7 @@
 #define HOURS_UNTIL_COLD 24
 #define NTP_SERVER "pool.ntp.org"
 #define TIMEZONE "GMT-1"
+*/
 
 extern QueueHandle_t scaleQueue;
 extern QueueHandle_t apiQueue;

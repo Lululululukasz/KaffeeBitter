@@ -7,6 +7,7 @@
 #include "tasks/wifi.h"
 #include "tasks/api.h"
 
+
 void app_main()
 {
     scaleQueue = xQueueCreate(5, sizeof(struct Measurement));

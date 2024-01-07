@@ -379,11 +379,35 @@ CONFIG_EXAMPLE_AVG_TIMES=5
 # end of Example configuration
 
 #
-# wifi
+# Wifi
 #
 CONFIG_WIFI_SSID="FH-Kiel-IoT-NAT"
 CONFIG_WIFI_PASSWORD="!FH-NAT-001!"
-# end of wifi
+# end of Wifi
+
+#
+# Scale
+#
+CONFIG_SCALE_ZERO_GRAMS=-178223
+CONFIG_SCALE_500_GRAMS=-153420
+CONFIG_SCALE_EMPTY_KETTLE_G=1825
+CONFIG_MARGIN_OF_ERROR_G=100
+# end of Scale
+
+#
+# Coffee
+#
+CONFIG_CUP_SIZE_ML=200
+CONFIG_HOURS_UNTIL_WARM=6
+CONFIG_HOURS_UNTIL_COLD=24
+# end of Coffee
+
+#
+# SNTP
+#
+CONFIG_NTP_SERVER="pool.ntp.org"
+CONFIG_TIMEZONE="GMT-1"
+# end of SNTP
 
 #
 # Compiler options

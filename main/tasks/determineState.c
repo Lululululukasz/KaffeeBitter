@@ -10,6 +10,7 @@
 #include "globals.h"
 #include "determineState.h"
 #include "esp_spiffs.h"
+#include "sdkconfig.h"
 
 // true if there is a file, false if not
 bool check_for_save_file();
@@ -75,7 +76,7 @@ void determineState(void *pvParameters) {
             case noKettle: {
                 if (cups > 0) {
                     updateState(&currentData, freshCoffee, measurement); // ! Fresh Coffee
-                } else if (checkForWeight(measurement.weightG, SCALE_EMPTY_KETTLE_G)) {
+                } else if (checkForWeight(measurement.weightG, CONFIG_SCALE_EMPTY_KETTLE_G)) {
                     updateState(&currentData, newEmptyKettle, measurement);
                 } // else no Kettle -> nothing changed
                 break;
@@ -83,7 +84,7 @@ void determineState(void *pvParameters) {
             case emptyKettle:
                 if (cups > 0) {
                     break; // filled Kettle -> makes no sense
-                } else if (!checkForWeight(measurement.weightG, SCALE_EMPTY_KETTLE_G)) {
+                } else if (!checkForWeight(measurement.weightG, CONFIG_SCALE_EMPTY_KETTLE_G)) {
                     updateState(&currentData, noMoreKettle, measurement);
                 } // else empty Kettle -> nothing changed
                 break;
@@ -92,7 +93,7 @@ void determineState(void *pvParameters) {
                     break; // no change or someone is pressing on the scale -> ignore
                 } else if (cups > 0) {
                     updateState(&currentData, lessCoffee, measurement);
-                } else if (checkForWeight(measurement.weightG, SCALE_EMPTY_KETTLE_G)) {
+                } else if (checkForWeight(measurement.weightG, CONFIG_SCALE_EMPTY_KETTLE_G)) {
                     updateState(&currentData, coffeeEmpty, measurement);
                 } else {
                     updateState(&currentData, noMoreKettle, measurement);
@@ -198,7 +199,7 @@ void updateState(struct DetailedData *data, enum StateChange stateChange, struct
             // fresh coffee timestamp stays same
             data->cupsOfCoffee = 0;
             data->temperature = cold;
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            data->coffeeAmountMl = measurement.weightG - CONFIG_SCALE_EMPTY_KETTLE_G;
             break;
 
         case newEmptyKettle:
@@ -207,7 +208,7 @@ void updateState(struct DetailedData *data, enum StateChange stateChange, struct
             data->freshCoffee = 0;
             data->cupsOfCoffee = 0;
             data->temperature = cold;
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            data->coffeeAmountMl = measurement.weightG - CONFIG_SCALE_EMPTY_KETTLE_G;
             break;
 
         case lessCoffee:
@@ -216,7 +217,7 @@ void updateState(struct DetailedData *data, enum StateChange stateChange, struct
             // fresh coffee timestamp stays same
             data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
             data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            data->coffeeAmountMl = measurement.weightG - CONFIG_SCALE_EMPTY_KETTLE_G;
             break;
 
         case freshCoffee:
@@ -225,7 +226,7 @@ void updateState(struct DetailedData *data, enum StateChange stateChange, struct
             data->freshCoffee = measurement.timestamp;
             data->cupsOfCoffee = calculateCupsFromWeight(measurement.weightG);
             data->temperature = calculateCoffeeTemperature(data->freshCoffee, data->measurement.timestamp);
-            data->coffeeAmountMl = measurement.weightG - SCALE_EMPTY_KETTLE_G;
+            data->coffeeAmountMl = measurement.weightG - CONFIG_SCALE_EMPTY_KETTLE_G;
             break;
 
         case stateLoaded:
@@ -248,22 +249,22 @@ void updateState(struct DetailedData *data, enum StateChange stateChange, struct
 }
 
 int32_t calculateCupsFromWeight(int32_t weight) {
-    return (weight - SCALE_EMPTY_KETTLE_G) / CUP_SIZE_ML;
+    return (weight - CONFIG_SCALE_EMPTY_KETTLE_G) / CONFIG_CUP_SIZE_ML;
 }
 
 bool checkForWeight(int32_t weight, int32_t ref) {
     if (weight > ref) {
-        return (weight - ref) < MARGIN_OF_ERROR_G;
+        return (weight - ref) < CONFIG_MARGIN_OF_ERROR_G;
     } else {
-        return (ref - weight) < MARGIN_OF_ERROR_G;
+        return (ref - weight) < CONFIG_MARGIN_OF_ERROR_G;
     }
 }
 
 enum Temperature calculateCoffeeTemperature(time_t freshCoffee, time_t current) {
     double dif = difftime(freshCoffee, current);
-    if (dif >= HOURS_UNTIL_COLD) {
+    if (dif >= CONFIG_HOURS_UNTIL_COLD) {
         return cold;
-    } else if (dif >= HOURS_UNTIL_WARM) {
+    } else if (dif >= CONFIG_HOURS_UNTIL_WARM) {
         return warm;
     } else {
         return hot;

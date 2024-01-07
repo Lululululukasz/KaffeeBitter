@@ -11,6 +11,7 @@
 #include <esp_netif_sntp.h>
 #include "time.h"
 #include "globals.h"
+#include "sdkconfig.h"
 
 // connects or reconnects to the wifi
 void wifi_initiation();
@@ -134,11 +135,11 @@ esp_err_t initialize_time(void) {
     const char* tag = "wifi(time)";
 
     // SET SNTP
-    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(NTP_SERVER);
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_NTP_SERVER);
     esp_netif_sntp_init(&config);
 
     // set timezone
-    setenv("TZ", TIMEZONE, 1);
+    setenv("TZ", CONFIG_TIMEZONE, 1);
     tzset();
 
     // GET SNTP response

@@ -12,6 +12,7 @@
 #include "nvs_flash.h"
 #include "time.h"
 #include "globals.h"
+#include "sdkconfig.h"
 
 // converts raw read into grams
 int32_t inGrams(int32_t raw);
@@ -51,8 +52,8 @@ void weight(void *pvParameters) {
 }
 
 int32_t inGrams(int32_t raw) {
-    int32_t gram = (SCALE_500_GRAMS - SCALE_ZERO_GRAMS)/500;
-    return (raw-SCALE_ZERO_GRAMS)/gram;
+    int32_t gram = (CONFIG_SCALE_500_GRAMS - CONFIG_SCALE_ZERO_GRAMS)/500;
+    return (raw - CONFIG_SCALE_ZERO_GRAMS)/gram;
 }
 
 int32_t readRawScaleValue(hx711_t dev, int times) {
