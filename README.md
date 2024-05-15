@@ -44,7 +44,7 @@ Please make sure to update tests as appropriate.
 
 MIT License
 
-Copyright (c) [2024] [Lukasz Szupka & Helene Lüning & Veronica Zylla & Jessica Kähne]
+Copyright (c) [2024] [Lukasz Szupka & Helene Lüning & Veronica Zylla]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
